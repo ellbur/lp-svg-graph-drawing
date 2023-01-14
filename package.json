@@ -1,0 +1,19 @@
+{
+  "name": "@ellbur/lp-svg-graph-drawing",
+  "version": "1.0.0",
+  "description": "SVG graph drawing and layout using first-order cost functions",
+  "scripts": {
+    "build": "rescript build -with-deps",
+    "clean": "rescript clean -with-deps"
+  },
+  "author": "Owen Healy <owen@owenehealy.com>",
+  "license": "WTFPL (http://www.wtfpl.net)",
+  "dependencies": {
+    "@rescript/std": "10.0.1",
+    "@ryyppy/rescript-promise": "2.1.0",
+    "rescript-webapi": "0.6.1"
+  },
+  "devDependencies": {
+    "rescript": "10.0.1"
+  }
+}
