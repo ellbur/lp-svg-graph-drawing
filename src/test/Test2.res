@@ -14,6 +14,9 @@ module SVGRect = {
 
 @send external getBBox: Dom.element => SVGRect.t = "getBBox"
 
+let {setAttribute} = module(Webapi.Dom.Element)
+let fts = Belt.Float.toString
+
 module Graph = {
   type node = {
     id: string,
@@ -44,11 +47,14 @@ module GraphDisplay = {
   let make = (~graph) => {
     let rectElems = Js.Dict.empty()
     let textElems = Js.Dict.empty()
+    let sideTextElems = Js.Dict.empty()
     let pathElems = Js.Dict.empty()
+    let sinkLabelElems = Js.Dict.empty()
+    let contentGElem = ref(None)
     
     let dots = {
       let {Graph.nodes: nodes} = graph
-      React.array(nodes->Belt.Array.flatMap(({id, text}) => {
+      React.array(nodes->Belt.Array.flatMap(({id, text, sideText}) => {
         [
           <rect 
             ref={ReactDOM.Ref.callbackDomRef(rectElems->Js.Dict.set(id))}
@@ -68,6 +74,18 @@ module GraphDisplay = {
             fill="#fff"
           >
             {React.string(text)}
+          </text>,
+          <text
+            ref={ReactDOM.Ref.callbackDomRef(sideTextElems->Js.Dict.set(id))}
+            key={id ++ "_sideText"}
+            textAnchor="start"
+            dominantBaseline="auto"
+            fontSize="14"
+            fontFamily="monospace"
+            stroke="none"
+            fill="#fff"
+          >
+            {React.string(sideText)}
           </text>
         ]
       }))
@@ -75,19 +93,33 @@ module GraphDisplay = {
 
     let arrows = {
       let {edges} = graph
-      React.array(edges->Belt.Array.map(({edgeID}) => {
-        <path
-          ref={ReactDOM.Ref.callbackDomRef(pathElems->Js.Dict.set(edgeID))}
-          key={edgeID}
-          fill="none"
-          stroke="#999"
-          strokeWidth="1"
-          markerEnd="url(#arrow)"
-        />
+      React.array(edges->Belt.Array.flatMap(({edgeID, sinkLabel}) => {
+        [
+          <path
+            ref={ReactDOM.Ref.callbackDomRef(pathElems->Js.Dict.set(edgeID))}
+            key={edgeID ++ "_path"}
+            fill="none"
+            stroke="#999"
+            strokeWidth="1"
+            markerEnd="url(#arrow)"
+          />,
+          <text
+            ref={ReactDOM.Ref.callbackDomRef(sinkLabelElems->Js.Dict.set(edgeID))}
+            key={edgeID ++ "_sinkLabel"}
+            textAnchor="start"
+            dominantBaseline="auto"
+            fontSize="14"
+            fontFamily="monospace"
+            stroke="none"
+            fill="#fff"
+          >
+            {React.string(sinkLabel)}
+          </text>
+        ]
       }))
     }
     
-    let adjustLayout = () => {
+    let adjustLayout = svgElem => {
       module F = Graph
       module T = LPLayout.Graph
       
@@ -110,8 +142,8 @@ module GraphDisplay = {
         let boxHeight = textHeight +. 2.0*.verticalPadding
         
         let rectElem = rectElems->Js.Dict.unsafeGet(id)->Js.Nullable.toOption->Belt.Option.getUnsafe
-        rectElem->Webapi.Dom.Element.setAttribute("width", boxWidth->Belt.Float.toString)
-        rectElem->Webapi.Dom.Element.setAttribute("height", boxHeight->Belt.Float.toString)
+        rectElem->setAttribute("width", fts(boxWidth))
+        rectElem->setAttribute("height", fts(boxHeight))
         
         boxWidths->Js.Dict.set(id, boxWidth)
         boxHeights->Js.Dict.set(id, boxHeight)
@@ -159,12 +191,16 @@ module GraphDisplay = {
         
         let textElem = textElems->Js.Dict.unsafeGet(id)->Js.Nullable.toOption->Belt.Option.getUnsafe
         let rectElem = rectElems->Js.Dict.unsafeGet(id)->Js.Nullable.toOption->Belt.Option.getUnsafe
+        let sideTextElem = sideTextElems->Js.Dict.unsafeGet(id)->Js.Nullable.toOption->Belt.Option.getUnsafe
         
-        textElem->Webapi.Dom.Element.setAttribute("x", cx->Belt.Float.toString)
-        textElem->Webapi.Dom.Element.setAttribute("y", cy->Belt.Float.toString)
+        textElem->setAttribute("x", cx->fts)
+        textElem->setAttribute("y", cy->fts)
         
-        rectElem->Webapi.Dom.Element.setAttribute("x", (cx -. boxWidth/.2.0)->Belt.Float.toString)
-        rectElem->Webapi.Dom.Element.setAttribute("y", (cy -. boxHeight/.2.0)->Belt.Float.toString)
+        rectElem->setAttribute("x", fts(cx -. boxWidth/.2.0))
+        rectElem->setAttribute("y", fts(cy -. boxHeight/.2.0))
+        
+        sideTextElem->setAttribute("x", fts(cx +. boxWidth/.2.0 +. 5.0))
+        sideTextElem->setAttribute("y", fts(cy))
       })
       
       graph.edges->Belt.Array.forEach(edge => {
@@ -193,14 +229,24 @@ module GraphDisplay = {
         let bx2 = x2
         let by2 = 0.75*.y1 +. 0.25*.y2
         
-        let ts = Belt.Float.toString
-        pathElem->Webapi.Dom.Element.setAttribute("d",
-          `M ${ts(x1)} ${ts(y1)} C ${ts(bx1)} ${ts(by1)} ${ts(bx2)} ${ts(by2)} ${ts(x2)} ${ts(y2)}`
+        pathElem->setAttribute("d",
+          `M ${fts(x1)} ${fts(y1)} C ${fts(bx1)} ${fts(by1)} ${fts(bx2)} ${fts(by2)} ${fts(x2)} ${fts(y2)}`
         )
+        
+        let sinkLabelElem = sinkLabelElems->Js.Dict.unsafeGet(edgeID)->Js.Nullable.toOption->Belt.Option.getUnsafe
+        sinkLabelElem->setAttribute("x", fts(x2 +. 10.0))
+        sinkLabelElem->setAttribute("y", fts(y2 +. 5.0))
       })
+      
+      let contentGElem = contentGElem.contents->Belt.Option.getUnsafe
+      let bbox = contentGElem->getBBox
+      let totalWidth = bbox.x*.2.0 +. bbox.width
+      let totalHeight = bbox.y*.2.0 +. bbox.height
+      svgElem->setAttribute("width", fts(totalWidth))
+      svgElem->setAttribute("height", fts(totalHeight))
     }
     
-    <svg ref={ReactDOM.Ref.callbackDomRef(_ => adjustLayout())} width="500" height="800">
+    <svg ref={ReactDOM.Ref.callbackDomRef(d => adjustLayout(d->Js.Nullable.toOption->Belt.Option.getUnsafe))} width="500" height="500">
       <defs>
         <marker
           id="arrow"
@@ -215,21 +261,25 @@ module GraphDisplay = {
           <path d="M 0 0 L 10 5 L 0 10 z" fill="#999"/>
         </marker>
       </defs>
-      dots
-      arrows
+      <g ref={ReactDOM.Ref.callbackDomRef(d => {contentGElem.contents = d->Js.Nullable.toOption})}>
+        dots
+        arrows
+      </g>
     </svg>
   }
 }
 
 let graph: Graph.graph = {
   nodes: [
-    { id: "a", text: "Alice", sideText: "", borderStrokeWidth: "1", borderStrokeColor: "#999" },
-    { id: "b", text: "Bob", sideText: "", borderStrokeWidth: "1", borderStrokeColor: "#999"  },
-    { id: "c", text: "Caroline", sideText: "", borderStrokeWidth: "1", borderStrokeColor: "#999"  },
+    { id: "b", text: "Bob", sideText: "?", borderStrokeWidth: "1", borderStrokeColor: "#999"  },
+    { id: "c", text: "Caroline", sideText: "*", borderStrokeWidth: "1", borderStrokeColor: "#999"  },
+    { id: "d", text: "Dave", sideText: "\"", borderStrokeWidth: "1", borderStrokeColor: "#999"  },
+    { id: "e", text: "Edward", sideText: "&", borderStrokeWidth: "1", borderStrokeColor: "#999"  },
   ],
   edges: [
-    { edgeID: "ba", source: "b", sink: "a", sinkPos: -1.0, edgeStrokeWidth: "1", edgeStrokeColor: "#999", sinkLabel: "" },
-    { edgeID: "ca", source: "c", sink: "a", sinkPos: +1.0, edgeStrokeWidth: "1", edgeStrokeColor: "#999", sinkLabel: "" },
+    { edgeID: "dc", source: "d", sink: "c", sinkPos:  0.0, edgeStrokeWidth: "1", edgeStrokeColor: "#999", sinkLabel: "..." },
+    { edgeID: "eb", source: "e", sink: "b", sinkPos:  0.0, edgeStrokeWidth: "1", edgeStrokeColor: "#999", sinkLabel: "," },
+    { edgeID: "ed", source: "e", sink: "d", sinkPos:  0.0, edgeStrokeWidth: "1", edgeStrokeColor: "#999", sinkLabel: "/" },
   ]
 }
 
