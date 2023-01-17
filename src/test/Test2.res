@@ -178,7 +178,9 @@ module GraphDisplay = {
         })
       }
       
-      let {nodeCenterXs, nodeCenterYs} = LPLayout.doLayout(lpGraph)
+      let layout = LPLayout.doLayout(lpGraph)
+      Js.Console.log2("layout", layout)
+      let {nodeCenterXs, nodeCenterYs, edgeExtraNodes} = layout
       
       graph.nodes->Belt.Array.forEach(node => {
         let {id} = node
@@ -217,25 +219,53 @@ module GraphDisplay = {
         let boxWidth2 = boxWidths->Js.Dict.unsafeGet(sink)
         let boxHeight2 = boxHeights->Js.Dict.unsafeGet(sink)
         
-        let x1 = cx1
-        let y1 = cy1 -. boxHeight1/.2.0
+        let xStart = cx1
+        let yStart = cy1 -. boxHeight1/.2.0
         
-        let x2 = cx2 +. sinkPos*.(boxWidth2-.10.0)*.0.9/.2.0
-        let y2 = cy2 +. boxHeight2/.2.0 +. 10.0
+        let xEnd = cx2 +. sinkPos*.(boxWidth2-.10.0)*.0.9/.2.0
+        let yEnd = cy2 +. boxHeight2/.2.0 +. 10.0
         
-        let bx1 = x1
-        let by1 = 0.25*.y1 +. 0.75*.y2
+        let pointsToTravelThrough = [(xStart, yStart)]
+        edgeExtraNodes->Js.Dict.get(edgeID)->Belt.Option.forEach(extraNodes => {
+          extraNodes->Belt.Array.forEach(extraNode => {
+            let px = nodeCenterXs->Js.Dict.unsafeGet(extraNode)
+            let py = nodeCenterYs->Js.Dict.unsafeGet(extraNode)
+            
+            pointsToTravelThrough->Belt.Array.push((px, py))
+          })
+        })
+        pointsToTravelThrough->Belt.Array.push((xEnd, yEnd))
         
-        let bx2 = x2
-        let by2 = 0.75*.y1 +. 0.25*.y2
+        let workingD = ref(`M ${fts(xStart)} ${fts(yStart)}`)
+        {
+          let len = pointsToTravelThrough->Js.Array2.length
+          let rec step = i => {
+            if i < len {
+              let p1 = pointsToTravelThrough[i-1]
+              let p2 = pointsToTravelThrough[i]
+              
+              let (x1, y1) = p1
+              let (x2, y2) = p2
+              
+              let bx1 = x1
+              let by1 = 0.10*.y1 +. 0.90*.y2
+
+              let bx2 = x2
+              let by2 = 0.90*.y1 +. 0.10*.y2
+              
+              workingD.contents = workingD.contents ++ ` C ${fts(bx1)} ${fts(by1)} ${fts(bx2)} ${fts(by2)} ${fts(x2)} ${fts(y2)}`
+              
+              step(i + 1)
+            }
+          }
+          step(1)
+        }
         
-        pathElem->setAttribute("d",
-          `M ${fts(x1)} ${fts(y1)} C ${fts(bx1)} ${fts(by1)} ${fts(bx2)} ${fts(by2)} ${fts(x2)} ${fts(y2)}`
-        )
+        pathElem->setAttribute("d", workingD.contents)
         
         let sinkLabelElem = sinkLabelElems->Js.Dict.unsafeGet(edgeID)->Js.Nullable.toOption->Belt.Option.getUnsafe
-        sinkLabelElem->setAttribute("x", fts(x2 +. 10.0))
-        sinkLabelElem->setAttribute("y", fts(y2 +. 5.0))
+        sinkLabelElem->setAttribute("x", fts(xEnd +. 10.0))
+        sinkLabelElem->setAttribute("y", fts(yEnd +. 5.0))
       })
       
       let contentGElem = contentGElem.contents->Belt.Option.getUnsafe
@@ -271,15 +301,26 @@ module GraphDisplay = {
 
 let graph: Graph.graph = {
   nodes: [
+    { id: "a", text: "Alice", sideText: "!", borderStrokeWidth: "1", borderStrokeColor: "#999"  },
     { id: "b", text: "Bob", sideText: "?", borderStrokeWidth: "1", borderStrokeColor: "#999"  },
     { id: "c", text: "Caroline", sideText: "*", borderStrokeWidth: "1", borderStrokeColor: "#999"  },
     { id: "d", text: "Dave", sideText: "\"", borderStrokeWidth: "1", borderStrokeColor: "#999"  },
     { id: "e", text: "Edward", sideText: "&", borderStrokeWidth: "1", borderStrokeColor: "#999"  },
+    { id: "f", text: "Fred", sideText: "&", borderStrokeWidth: "1", borderStrokeColor: "#999"  },
+    { id: "g", text: "Gus", sideText: "&", borderStrokeWidth: "1", borderStrokeColor: "#999"  },
   ],
   edges: [
-    { edgeID: "dc", source: "d", sink: "c", sinkPos:  0.0, edgeStrokeWidth: "1", edgeStrokeColor: "#999", sinkLabel: "..." },
+    { edgeID: "dc", source: "d", sink: "c", sinkPos: -1.0, edgeStrokeWidth: "1", edgeStrokeColor: "#999", sinkLabel: "..." },
     { edgeID: "eb", source: "e", sink: "b", sinkPos:  0.0, edgeStrokeWidth: "1", edgeStrokeColor: "#999", sinkLabel: "," },
-    { edgeID: "ed", source: "e", sink: "d", sinkPos:  0.0, edgeStrokeWidth: "1", edgeStrokeColor: "#999", sinkLabel: "/" },
+    { edgeID: "eg1", source: "e", sink: "g", sinkPos: -1.0, edgeStrokeWidth: "1", edgeStrokeColor: "#999", sinkLabel: "/" },
+    { edgeID: "eg2", source: "e", sink: "g", sinkPos: +1.0, edgeStrokeWidth: "1", edgeStrokeColor: "#999", sinkLabel: "/" },
+    { edgeID: "gd", source: "g", sink: "d", sinkPos: +1.0, edgeStrokeWidth: "1", edgeStrokeColor: "#999", sinkLabel: "/" },
+    { edgeID: "ac", source: "a", sink: "c", sinkPos: +1.0, edgeStrokeWidth: "1", edgeStrokeColor: "#999", sinkLabel: "/" },
+    { edgeID: "cf", source: "c", sink: "f", sinkPos: -1.0, edgeStrokeWidth: "1", edgeStrokeColor: "#999", sinkLabel: "/" },
+    { edgeID: "bf", source: "b", sink: "f", sinkPos: +1.0, edgeStrokeWidth: "1", edgeStrokeColor: "#999", sinkLabel: "/" },
+    { edgeID: "ga", source: "g", sink: "a", sinkPos: -1.0, edgeStrokeWidth: "1", edgeStrokeColor: "#999", sinkLabel: "/" },
+    { edgeID: "ed", source: "e", sink: "d", sinkPos: -1.0, edgeStrokeWidth: "1", edgeStrokeColor: "#999", sinkLabel: "/" },
+    { edgeID: "ea", source: "e", sink: "a", sinkPos: +1.0, edgeStrokeWidth: "1", edgeStrokeColor: "#999", sinkLabel: "/" },
   ]
 }
 
