@@ -52,7 +52,7 @@ let graph = {
   ]
 }
 
-let {LPLayout.nodeCenterXs: cxs, LPLayout.nodeCenterYs: cys} = LPLayout.doLayout(graph)
+let {LPLayout.nodeCenterXs: cxs, LPLayout.nodeCenterYs: cys} = LPLayout.doLayout(graph, {xSpacing: 20.0, ySpacing: 30.0})
 
 let dots = {
   let {nodes} = graph

@@ -151,7 +151,7 @@ module GraphDisplay = {
         })
       }
       
-      let layout = LPLayout.doLayout(lpGraph)
+      let layout = LPLayout.doLayout(lpGraph, {xSpacing: 20.0, ySpacing: 30.0})
       Js.Console.log2("layout", layout)
       let {nodeCenterXs, nodeCenterYs, edgeExtraNodes} = layout
       
