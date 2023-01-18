@@ -6,7 +6,7 @@
     "subdirs" : true
   },
   "package-specs": {
-    "module": "es6-global"
+    "module": "es6"
   },
   "suffix": ".bs.js",
   "external-stdlib" : "@rescript/std",
