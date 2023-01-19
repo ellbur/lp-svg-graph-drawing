@@ -1,6 +1,8 @@
 
 A small ReScript library for drawing hierarchies with SVG. It is based on [react](https://reactjs.org), and gives you a react component.
 
+![sample diagraph](https://raw.githubusercontent.com/ellbur/lp-svg-graph-drawing/main/example.svg?token=GHSAT0AAAAAAB5GCAHSVTSD7VR5WJJJIR74Y6IYFWA)
+
 # Installation
 
 ```sh
