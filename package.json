@@ -9,6 +9,7 @@
   },
   "author": "Owen Healy <owen@owenehealy.com>",
   "license": "WTFPL (http://www.wtfpl.net)",
+  "main": "lib/es6/src/main/LPSVGGraphDrawing.bs.js",
   "dependencies": {
     "@ellbur/lplayout": "^1.1.4",
     "@rescript/react": "^0.11.0",

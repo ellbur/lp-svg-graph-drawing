@@ -268,3 +268,5 @@ module GraphDisplay = {
   }
 }
 
+let \"GraphDisplayJS" = GraphDisplay.make
+
