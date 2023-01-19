@@ -27,24 +27,26 @@ module GraphDisplay = {
     
     let dots = {
       let {Graph.nodes: nodes} = graph
-      React.array(nodes->Belt.Array.flatMap(({id, text, sideText}) => {
+      React.array(nodes->Belt.Array.flatMap(({id, text, sideText, nodeMetrics}) => {
         [
           <rect 
             ref={ReactDOM.Ref.callbackDomRef(rectElems->Js.Dict.set(id))}
             key={id ++ "_border"} 
-            rx="5"
-            ry="5"
-            fill="none" stroke="#999"
+            rx={nodeMetrics.nodeRoundingX->Belt.Float.toString}
+            ry={nodeMetrics.nodeRoundingY->Belt.Float.toString}
+            fill="none"
+            strokeWidth={nodeMetrics.nodeBorderStrokeWidth}
+            className="node-border"
+            stroke="#999"
           />,
           <text
             ref={ReactDOM.Ref.callbackDomRef(textElems->Js.Dict.set(id))}
             key={id ++ "_text"}
             textAnchor="middle"
             dominantBaseline="middle"
-            fontSize="18"
-            fontFamily="monospace"
-            stroke="none"
-            fill="#fff"
+            fontSize={nodeMetrics.nodeFontSize}
+            fontFamily={nodeMetrics.nodeFontFamily}
+            className="node-text"
           >
             {React.string(text)}
           </text>,
@@ -53,10 +55,9 @@ module GraphDisplay = {
             key={id ++ "_sideText"}
             textAnchor="start"
             dominantBaseline="auto"
-            fontSize="14"
-            fontFamily="monospace"
-            stroke="none"
-            fill="#fff"
+            fontSize={nodeMetrics.nodeSideTextFontSize}
+            fontFamily={nodeMetrics.nodeSideTextFontFamily}
+            className="node-side-text"
           >
             {React.string(sideText)}
           </text>
@@ -66,25 +67,25 @@ module GraphDisplay = {
 
     let arrows = {
       let {edges} = graph
-      React.array(edges->Belt.Array.flatMap(({edgeID, sinkLabel}) => {
+      React.array(edges->Belt.Array.flatMap(({edgeID, sinkLabel, edgeMetrics}) => {
         [
           <path
             ref={ReactDOM.Ref.callbackDomRef(pathElems->Js.Dict.set(edgeID))}
             key={edgeID ++ "_path"}
             fill="none"
-            stroke="#999"
-            strokeWidth="1"
+            strokeWidth={edgeMetrics.edgeStrokeWidth}
             markerEnd="url(#arrow)"
+            className="edge"
+            stroke="#999"
           />,
           <text
             ref={ReactDOM.Ref.callbackDomRef(sinkLabelElems->Js.Dict.set(edgeID))}
             key={edgeID ++ "_sinkLabel"}
             textAnchor="start"
-            dominantBaseline="auto"
-            fontSize="14"
-            fontFamily="monospace"
-            stroke="none"
-            fill="#fff"
+            dominantBaseline="hanging"
+            fontSize={edgeMetrics.edgeSinkLabelFontSize}
+            fontFamily={edgeMetrics.edgeSinkLabelFontFamily}
+            className="edge-sink-text"
           >
             {React.string(sinkLabel)}
           </text>
@@ -96,29 +97,25 @@ module GraphDisplay = {
       module F = Graph
       module T = LPLayout.Graph
       
-      let horizontalScaleFactor = 1.50
-      let verticalScaleFactor = 2.50
-      
-      let horizontalPadding = 10.0
-      let verticalPadding = 5.0
-      
       let boxWidths = Js.Dict.empty()
+      let boxFlatWidths = Js.Dict.empty()
       let boxHeights = Js.Dict.empty()
       
       graph.nodes->Belt.Array.forEach(node => {
-        let {id} = node
+        let {id, nodeMetrics} = node
         
         let textElem = textElems->Js.Dict.unsafeGet(id)->Js.Nullable.toOption->Belt.Option.getUnsafe
         let {width: textWidth, height: textHeight} = textElem->getBBox
         
-        let boxWidth = textWidth +. 2.0*.horizontalPadding
-        let boxHeight = textHeight +. 2.0*.verticalPadding
+        let boxWidth = textWidth +. 2.0*.nodeMetrics.nodeHorizontalPadding
+        let boxHeight = textHeight +. 2.0*.nodeMetrics.nodeVerticalPadding
         
         let rectElem = rectElems->Js.Dict.unsafeGet(id)->Js.Nullable.toOption->Belt.Option.getUnsafe
         rectElem->setAttribute("width", fts(boxWidth))
         rectElem->setAttribute("height", fts(boxHeight))
         
         boxWidths->Js.Dict.set(id, boxWidth)
+        boxFlatWidths->Js.Dict.set(id, boxWidth -. 2.0*.nodeMetrics.nodeRoundingX)
         boxHeights->Js.Dict.set(id, boxHeight)
       })
       
@@ -129,8 +126,8 @@ module GraphDisplay = {
           let boxWidth = boxWidths->Js.Dict.unsafeGet(id)
           let boxHeight = boxHeights->Js.Dict.unsafeGet(id)
           
-          let layoutWidth = boxWidth *. horizontalScaleFactor
-          let layoutHeight = boxHeight *. verticalScaleFactor
+          let layoutWidth = boxWidth
+          let layoutHeight = boxHeight
           
           ({
             id: id,
@@ -151,12 +148,11 @@ module GraphDisplay = {
         })
       }
       
-      let layout = LPLayout.doLayout(lpGraph, {xSpacing: 20.0, ySpacing: 30.0})
-      Js.Console.log2("layout", layout)
+      let layout = LPLayout.doLayout(lpGraph, {xSpacing: graph.graphMetrics.xSpacing, ySpacing: graph.graphMetrics.ySpacing})
       let {nodeCenterXs, nodeCenterYs, edgeExtraNodes} = layout
       
       graph.nodes->Belt.Array.forEach(node => {
-        let {id} = node
+        let {id, nodeMetrics} = node
         
         let cx = nodeCenterXs->Js.Dict.unsafeGet(id)
         let cy = nodeCenterYs->Js.Dict.unsafeGet(id)
@@ -174,12 +170,12 @@ module GraphDisplay = {
         rectElem->setAttribute("x", fts(cx -. boxWidth/.2.0))
         rectElem->setAttribute("y", fts(cy -. boxHeight/.2.0))
         
-        sideTextElem->setAttribute("x", fts(cx +. boxWidth/.2.0 +. 5.0))
+        sideTextElem->setAttribute("x", fts(cx +. boxWidth/.2.0 +. nodeMetrics.nodeSideTextXOffset))
         sideTextElem->setAttribute("y", fts(cy))
       })
       
       graph.edges->Belt.Array.forEach(edge => {
-        let {edgeID, source, sink, sinkPos} = edge
+        let {edgeID, source, sink, sinkPos, edgeMetrics} = edge
         let pathElem = pathElems->Js.Dict.unsafeGet(edgeID)->Js.Nullable.toOption->Belt.Option.getUnsafe
         
         let cx1 = nodeCenterXs->Js.Dict.unsafeGet(source)
@@ -189,13 +185,13 @@ module GraphDisplay = {
         let cy2 = nodeCenterYs->Js.Dict.unsafeGet(sink)
         
         let boxHeight1 = boxHeights->Js.Dict.unsafeGet(source)
-        let boxWidth2 = boxWidths->Js.Dict.unsafeGet(sink)
+        let boxFlatWidth2 = boxFlatWidths->Js.Dict.unsafeGet(sink)
         let boxHeight2 = boxHeights->Js.Dict.unsafeGet(sink)
         
         let xStart = cx1
         let yStart = cy1 -. boxHeight1/.2.0
         
-        let xEnd = cx2 +. sinkPos*.(boxWidth2-.10.0)*.0.9/.2.0
+        let xEnd = cx2 +. sinkPos*.boxFlatWidth2*.0.9/.2.0
         let yEnd = cy2 +. boxHeight2/.2.0 +. 10.0
         
         let pointsToTravelThrough = [(xStart, yStart)]
@@ -221,10 +217,10 @@ module GraphDisplay = {
               let (x2, y2) = p2
               
               let bx1 = x1
-              let by1 = 0.10*.y1 +. 0.90*.y2
+              let by1 = (1.0 -. edgeMetrics.edgeRectangularness)*.y1 +. edgeMetrics.edgeRectangularness*.y2
 
               let bx2 = x2
-              let by2 = 0.90*.y1 +. 0.10*.y2
+              let by2 = edgeMetrics.edgeRectangularness*.y1 +. (1.0 -. edgeMetrics.edgeRectangularness)*.y2
               
               workingD.contents = workingD.contents ++ ` C ${fts(bx1)} ${fts(by1)} ${fts(bx2)} ${fts(by2)} ${fts(x2)} ${fts(y2)}`
               
@@ -237,8 +233,8 @@ module GraphDisplay = {
         pathElem->setAttribute("d", workingD.contents)
         
         let sinkLabelElem = sinkLabelElems->Js.Dict.unsafeGet(edgeID)->Js.Nullable.toOption->Belt.Option.getUnsafe
-        sinkLabelElem->setAttribute("x", fts(xEnd +. 10.0))
-        sinkLabelElem->setAttribute("y", fts(yEnd +. 5.0))
+        sinkLabelElem->setAttribute("x", fts(xEnd +. edgeMetrics.edgeSinkLabelXOffset))
+        sinkLabelElem->setAttribute("y", fts(yEnd +. edgeMetrics.edgeSinkLabelYOffset))
       })
       
       let contentGElem = contentGElem.contents->Belt.Option.getUnsafe
