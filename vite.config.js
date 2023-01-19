@@ -5,7 +5,4 @@ import reactRefresh from '@vitejs/plugin-react-refresh'
 export default defineConfig({
   plugins: [reactRefresh()],
   clearScreen: false,
-   optimizeDeps: {
-    include: ['javascript-lp-solver']
-  }
 })
