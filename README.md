@@ -1,5 +1,5 @@
 
-A small ReScript library for drawing hierarchies with SVG. It is based on [react](https://reactjs.org), and gives you a react component.
+A small ReScript library for drawing hierarchies with SVG.
 
 ![sample diagraph](https://raw.githubusercontent.com/ellbur/lp-svg-graph-drawing/main/example.svg?token=GHSAT0AAAAAAB5GCAHSVTSD7VR5WJJJIR74Y6IYFWA)
 
@@ -12,7 +12,6 @@ npm i @ellbur/lp-svg-graph-drawing
 # Usage
 
 ```rescript
-module GraphDisplay = LPSVGGraphDrawing.GraphDisplay
 module Graph = LPSVGGraphDrawing.Graph
 
 let nodeMetrics: Graph.nodeMetrics = {
@@ -67,18 +66,22 @@ let graph: Graph.graph = {
   graphMetrics
 }
 
-let container = ReactDOM.querySelector("#root")->Belt.Option.getExn
-let root = ReactDOM.Client.createRoot(container)
-root->ReactDOM.Client.Root.render(<GraphDisplay graph/>)
+module Document = Webapi.Dom.Document
+module Element = Webapi.Dom.Element
+let document = Webapi.Dom.document
+
+let svgNS = "http://www.w3.org/2000/svg"
+
+let container = document->Document.getElementById("root")->Belt.Option.getExn
+let svg = document->Document.createElementNS(svgNS, "svg")
+container->Element.appendChild(~child=svg)
+
+LPSVGGraphDrawing.renderGraph(~document, ~svg, ~graph)
 ```
 
 ## From JavaScript
 
-The only difference from JavaScript is that due to an [unavoidable name collision](https://forum.rescript-lang.org/t/it-is-possible-to-directly-name-a-react-component-and-avoid-the-make-convention/938/19), the component name is `GraphDisplayJS`:
-
 ```javascript
-'use strict';
-
 const nodeMetrics = {
   nodeBorderStrokeWidth: "1",
   nodeHorizontalPadding: 8.0,
@@ -131,14 +134,15 @@ const graph = {
   graphMetrics
 };
 
-import React from 'react';
-import { createRoot } from 'react-dom/client';
+const container = document.getElementById('root');
 
-const root = createRoot(document.getElementById('root'));
+let svgNS = "http://www.w3.org/2000/svg";
 
-import {GraphDisplayJS} from '@ellbur/lp-svg-graph-drawing';
-console.log("GraphDisplayJS", GraphDisplayJS);
+let svg = document.createElementNS(svgNS, "svg");
+container.appendChild(svg);
 
-root.render(<GraphDisplayJS graph={graph}/>);
+import {renderGraph} from 'lp-svg-graph-drawing';
+
+renderGraph(document, svg, graph);
 ```
 

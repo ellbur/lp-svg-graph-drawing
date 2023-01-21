@@ -31,7 +31,7 @@ let removeAllChildren = el => {
   step()
 }
 
-let renderGraph = (document: Document.t, svg: Element.t, graph: Graph.graph) => {
+let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) => {
   let {rect, text, defs, marker, path, g} = module(LPSVGGraphDrawing_SVGUtils)
   
   removeAllChildren(svg)
@@ -289,6 +289,5 @@ let renderGraph = (document: Document.t, svg: Element.t, graph: Graph.graph) => 
     svg->setAttribute("width", fts(totalWidth))
     svg->setAttribute("height", fts(totalHeight))
   }
-  
 }
 

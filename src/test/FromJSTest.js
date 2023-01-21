@@ -1,7 +1,7 @@
 
-module Graph = LPSVGGraphDrawing.Graph
+'use strict';
 
-let nodeMetrics: Graph.nodeMetrics = {
+const nodeMetrics = {
   nodeBorderStrokeWidth: "1",
   nodeHorizontalPadding: 8.0,
   nodeVerticalPadding: 4.0,
@@ -12,23 +12,23 @@ let nodeMetrics: Graph.nodeMetrics = {
   nodeSideTextXOffset: 5.0,
   nodeRoundingX: 5.0,
   nodeRoundingY: 5.0,
-}
+};
 
-let edgeMetrics: Graph.edgeMetrics = {
+const edgeMetrics = {
   edgeStrokeWidth: "1",
   edgeSinkLabelFontSize: "14",
   edgeSinkLabelFontFamily: "monospace",
   edgeSinkLabelXOffset: 8.0,
   edgeSinkLabelYOffset: -5.0,
   edgeRectangularness: 1.0,
-}
+};
 
-let graphMetrics: Graph.graphMetrics = {
+const graphMetrics = {
   xSpacing: 40.0,
   ySpacing: 60.0,
-}
+};
 
-let graph: Graph.graph = {
+const graph = {
   nodes: [
     { id: "a", text: "One", sideText: "1", nodeMetrics },
     { id: "b", text: "Two", sideText: "2", nodeMetrics },
@@ -51,17 +51,16 @@ let graph: Graph.graph = {
     { edgeID: "ea",  source: "e", sink: "a", sinkPos: +1.0, sinkLabel: "j", edgeMetrics },
   ],
   graphMetrics
-}
+};
 
-module Document = Webapi.Dom.Document
-module Element = Webapi.Dom.Element
-let document = Webapi.Dom.document
+const container = document.getElementById('root');
 
-let svgNS = "http://www.w3.org/2000/svg"
+let svgNS = "http://www.w3.org/2000/svg";
 
-let container = document->Document.getElementById("root")->Belt.Option.getExn
-let svg = document->Document.createElementNS(svgNS, "svg")
-container->Element.appendChild(~child=svg)
+let svg = document.createElementNS(svgNS, "svg");
+container.appendChild(svg);
 
-LPSVGGraphDrawing.renderGraph(~document, ~svg, ~graph)
+import {renderGraph} from '../../lib/es6/src/main/LPSVGGraphDrawing.bs.js';
+
+renderGraph(document, svg, graph);
 

@@ -14,7 +14,6 @@
   "bs-dependencies": [
     "@ryyppy/rescript-promise",
     "rescript-webapi",
-    "@rescript/react",
     "@ellbur/lplayout"
   ],
   "warnings": {

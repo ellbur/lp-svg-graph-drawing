@@ -1,5 +1,5 @@
 
 module Graph = LPSVGGraphDrawing_Graph
 
-let renderGraph: (Webapi.Dom.Document.t, Webapi.Dom.Element.t, Graph.graph) => ()
+let renderGraph: (~document: Webapi.Dom.Document.t, ~svg: Webapi.Dom.Element.t, ~graph: Graph.graph) => ()
 

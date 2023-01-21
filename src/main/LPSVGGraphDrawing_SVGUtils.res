@@ -39,7 +39,7 @@ let rect = (
   el->sa("rx", rx)
   el->sa("ry", ry)
   el->sa("fill", fill)
-  el->sa("strokeWidth", strokeWidth)
+  el->sa("stroke-width", strokeWidth)
   el->sa("class", class)
   el->sa("stroke", stroke)
   el
@@ -56,10 +56,10 @@ let text = (
   ()
 ) => {
   let el = document->Document.createElementNS(svgNS, "text")
-  el->sa("textAnchor", textAnchor)
-  el->sa("dominantBaseline", dominantBaseline)
-  el->sa("fontSize", fontSize)
-  el->sa("fontFamily", fontFamily)
+  el->sa("text-anchor", textAnchor)
+  el->sa("dominant-baseline", dominantBaseline)
+  el->sa("font-size", fontSize)
+  el->sa("font-family", fontFamily)
   el->sa("class", class)
   textContent->Belt.Option.forEach(el->Element.setTextContent)
   el
@@ -78,9 +78,9 @@ let path = (
   let el = document->Document.createElementNS(svgNS, "path")
   el->sa("d", d)
   el->sa("fill", fill)
-  el->sa("strokeWidth", strokeWidth)
+  el->sa("stroke-width", strokeWidth)
   el->sa("stroke", stroke)
-  el->sa("markerEnd", markerEnd)
+  el->sa("marker-end", markerEnd)
   el->sa("class", class)
   el
 }

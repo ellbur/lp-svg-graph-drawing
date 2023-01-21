@@ -1,5 +1,4 @@
 
-module GraphDisplay = LPSVGGraphDrawing.GraphDisplay
 module Graph = LPSVGGraphDrawing.Graph
 
 let nodeMetrics: Graph.nodeMetrics = {
@@ -54,7 +53,15 @@ let graph: Graph.graph = {
   graphMetrics
 }
 
-let container = ReactDOM.querySelector("#root")->Belt.Option.getExn
-let root = ReactDOM.Client.createRoot(container)
-root->ReactDOM.Client.Root.render(<GraphDisplay graph/>)
+module Document = Webapi.Dom.Document
+module Element = Webapi.Dom.Element
+let document = Webapi.Dom.document
+
+let svgNS = "http://www.w3.org/2000/svg"
+
+let container = document->Document.getElementById("root")->Belt.Option.getExn
+let svg = document->Document.createElementNS(svgNS, "svg")
+container->Element.appendChild(~child=svg)
+
+LPSVGGraphDrawing.renderGraph(~document, ~svg, ~graph)
 
