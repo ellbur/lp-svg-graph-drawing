@@ -12,10 +12,17 @@ type nodeMetrics = {
   nodeRoundingY: float,
 }
 
+type nodeAnnotations = {
+  lowerLeft: option<string>,
+  upperLeft: option<string>,
+  lowerRight: option<string>,
+  upperRight: option<string>,
+}
+
 type node = {
   id: string,
   text: string,
-  sideText: string,
+  nodeAnnotations: nodeAnnotations,
   nodeMetrics: nodeMetrics,
 }
 

@@ -10,9 +10,7 @@
   },
   "suffix": ".bs.js",
   "external-stdlib" : "@rescript/std",
-  "jsx": { "version": 4, "mode": "automatic" },
   "bs-dependencies": [
-    "@ryyppy/rescript-promise",
     "rescript-webapi",
     "@ellbur/lplayout"
   ],

@@ -60,16 +60,26 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
   let mainG = document->g(~children=[])
   svg->Element.appendChild(~child=mainG)
   
-  let rectElems = Js.Dict.empty()
-  let textElems = Js.Dict.empty()
-  let sideTextElems = Js.Dict.empty()
-  let pathElems = Js.Dict.empty()
-  let sinkLabelElems = Js.Dict.empty()
+  module NodeRendering = {
+    type t = {
+      nodeG: Element.t,
+    }
+  }
+  
+  module EdgeRendering = {
+    type t = {
+      pathElem: Element.t,
+      sinkLabelElem: Element.t,
+    }
+  }
+  
+  let nodeRenderings = Js.Dict.empty()
+  let edgeRenderings = Js.Dict.empty()
   
   {
     let {Graph.nodes: nodes} = graph
-    nodes->Belt.Array.forEach(({id, text: label, sideText, nodeMetrics}) => {
-      let nodeRect = document->rect(
+    nodes->Belt.Array.forEach(({id, text: label, nodeAnnotations, nodeMetrics}) => {
+      let rectElem = document->rect(
         ~rx=nodeMetrics.nodeRoundingX->Belt.Float.toString,
         ~ry=nodeMetrics.nodeRoundingY->Belt.Float.toString,
         ~fill="none",
@@ -79,7 +89,7 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
         ()
       )
       
-      let nodeText = document->text(
+      let textElem = document->text(
         ~textAnchor="middle",
         ~dominantBaseline="middle",
         ~fontSize=nodeMetrics.nodeFontSize,
@@ -89,23 +99,82 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
         ()
       )
       
-      let nodeSideText = document->text(
+      let lowerLeftElem: option<Element.t> = nodeAnnotations.lowerLeft->Belt.Option.map(textContent => document->text(
+        ~textAnchor="end",
+        ~dominantBaseline="auto",
+        ~fontSize=nodeMetrics.nodeSideTextFontSize,
+        ~fontFamily=nodeMetrics.nodeSideTextFontFamily,
+        ~class="node-side-text",
+        ~textContent,
+        ()
+      ))
+      let upperLeftElem: option<Element.t> = nodeAnnotations.upperLeft->Belt.Option.map(textContent => document->text(
+        ~textAnchor="end",
+        ~dominantBaseline="text-top",
+        ~fontSize=nodeMetrics.nodeSideTextFontSize,
+        ~fontFamily=nodeMetrics.nodeSideTextFontFamily,
+        ~class="node-side-text",
+        ~textContent,
+        ()
+      ))
+      let lowerRightElem: option<Element.t> = nodeAnnotations.lowerRight->Belt.Option.map(textContent => document->text(
         ~textAnchor="start",
         ~dominantBaseline="auto",
         ~fontSize=nodeMetrics.nodeSideTextFontSize,
         ~fontFamily=nodeMetrics.nodeSideTextFontFamily,
         ~class="node-side-text",
-        ~textContent=sideText,
+        ~textContent,
         ()
+      ))
+      let upperRightElem: option<Element.t> = nodeAnnotations.upperRight->Belt.Option.map(textContent => document->text(
+        ~textAnchor="start",
+        ~dominantBaseline="text-top",
+        ~fontSize=nodeMetrics.nodeSideTextFontSize,
+        ~fontFamily=nodeMetrics.nodeSideTextFontFamily,
+        ~class="node-side-text",
+        ~textContent,
+        ()
+      ))
+      
+      let nodeChildren = [Some(rectElem), Some(textElem), lowerLeftElem, upperLeftElem, lowerRightElem, upperRightElem]->Belt.Array.flatMap(el =>
+        el->Belt.Option.mapWithDefault([], x => [x])
       )
       
-      mainG->Element.appendChild(~child=nodeRect)
-      mainG->Element.appendChild(~child=nodeText)
-      mainG->Element.appendChild(~child=nodeSideText)
+      let nodeG = document->g(~children=nodeChildren)
+      mainG->Element.appendChild(~child=nodeG)
       
-      rectElems->Js.Dict.set(id, nodeRect)
-      textElems->Js.Dict.set(id, nodeText)
-      sideTextElems->Js.Dict.set(id, nodeSideText)
+      let leftAnnotationSize = [lowerLeftElem, upperLeftElem]->Belt.Array.map(el => el->Belt.Option.mapWithDefault(0.0, el => {
+        let {width} = el->getBBox
+        width +. nodeMetrics.nodeSideTextXOffset
+      }))->Belt.Array.reduce(0.0, Js.Math.max_float)
+      
+      let rightAnnotationSize = [lowerRightElem, upperRightElem]->Belt.Array.map(el => el->Belt.Option.mapWithDefault(0.0, el => {
+        let {width} = el->getBBox
+        width +. nodeMetrics.nodeSideTextXOffset
+      }))->Belt.Array.reduce(0.0, Js.Math.max_float)
+      
+      let {width: textWidth, height: textHeight} = textElem->getBBox
+      let rectWidth = textWidth +. 2.0*.nodeMetrics.nodeHorizontalPadding
+      let rectHeight = textHeight +. 2.0*.nodeMetrics.nodeVerticalPadding
+      
+      rectElem->Element.setAttribute("x", fts(leftAnnotationSize))
+      rectElem->Element.setAttribute("y", "0")
+      rectElem->Element.setAttribute("width", fts(rectWidth))
+      rectElem->Element.setAttribute("height", fts(rectWidth))
+      
+      lowerLeftElem->Belt.Option.forEach(el => el->Element.setAttribute("x", fts(leftAnnotationSize-.nodeMetrics.nodeSideTextXOffset)))
+      lowerLeftElem->Belt.Option.forEach(el => el->Element.setAttribute("y", fts(rectHeight)))
+      
+      upperLeftElem->Belt.Option.forEach(el => el->Element.setAttribute("x", fts(leftAnnotationSize-.nodeMetrics.nodeSideTextXOffset)))
+      upperLeftElem->Belt.Option.forEach(el => el->Element.setAttribute("y", "0.0"))
+      
+      lowerRightElem->Belt.Option.forEach(el => el->Element.setAttribute("x", fts(leftAnnotationSize+.rectWidth+.nodeMetrics.nodeSideTextXOffset)))
+      lowerRightElem->Belt.Option.forEach(el => el->Element.setAttribute("y", fts(rectHeight)))
+      
+      upperRightElem->Belt.Option.forEach(el => el->Element.setAttribute("x", fts(leftAnnotationSize+.rectWidth+.nodeMetrics.nodeSideTextXOffset)))
+      upperRightElem->Belt.Option.forEach(el => el->Element.setAttribute("y", "0.0"))
+      
+      nodeRenderings->Js.Dict.set(id, { NodeRendering.nodeG: nodeG })
     })
   }
 
@@ -134,8 +203,10 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
       mainG->Element.appendChild(~child=edgePath)
       mainG->Element.appendChild(~child=edgeSinkText)
       
-      pathElems->Js.Dict.set(edgeID, edgePath)
-      sinkLabelElems->Js.Dict.set(edgeID, edgeSinkText)
+      edgeRenderings->Js.Dict.set(edgeID, {
+        EdgeRendering.pathElem: edgePath,
+        EdgeRendering.sinkLabelElem: edgeSinkText
+      })
     })
   }
   
@@ -143,42 +214,17 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
     module F = Graph
     module T = LPLayout.Graph
     
-    let boxWidths = Js.Dict.empty()
-    let boxFlatWidths = Js.Dict.empty()
-    let boxHeights = Js.Dict.empty()
-    
-    graph.nodes->Belt.Array.forEach(node => {
-      let {id, nodeMetrics} = node
-      
-      let textElem = textElems->Js.Dict.unsafeGet(id)
-      let {width: textWidth, height: textHeight} = textElem->getBBox
-      
-      let boxWidth = textWidth +. 2.0*.nodeMetrics.nodeHorizontalPadding
-      let boxHeight = textHeight +. 2.0*.nodeMetrics.nodeVerticalPadding
-      
-      let rectElem = rectElems->Js.Dict.unsafeGet(id)
-      rectElem->setAttribute("width", fts(boxWidth))
-      rectElem->setAttribute("height", fts(boxHeight))
-      
-      boxWidths->Js.Dict.set(id, boxWidth)
-      boxFlatWidths->Js.Dict.set(id, boxWidth -. 2.0*.nodeMetrics.nodeRoundingX)
-      boxHeights->Js.Dict.set(id, boxHeight)
-    })
-    
     let lpGraph: T.graph = {
       nodes: graph.nodes->Belt.Array.map(node => {
         let {id} = node
         
-        let boxWidth = boxWidths->Js.Dict.unsafeGet(id)
-        let boxHeight = boxHeights->Js.Dict.unsafeGet(id)
-        
-        let layoutWidth = boxWidth
-        let layoutHeight = boxHeight
+        let nodeRendering = nodeRenderings->Js.Dict.unsafeGet(id)
+        let {width, height} = nodeRendering.NodeRendering.nodeG->getBBox
         
         ({
           id: id,
-          width: layoutWidth,
-          height: layoutHeight
+          width,
+          height
         }: T.node)
       }),
       
