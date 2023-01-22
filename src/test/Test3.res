@@ -30,13 +30,13 @@ let graphMetrics: Graph.graphMetrics = {
 
 let graph: Graph.graph = {
   nodes: [
-    { id: "a", text: "Alice", sideText: "!", nodeMetrics },
-    { id: "b", text: "Bob", sideText: "?", nodeMetrics },
-    { id: "c", text: "Caroline", sideText: "*", nodeMetrics },
-    { id: "d", text: "Dave", sideText: "\"", nodeMetrics },
-    { id: "e", text: "Edward", sideText: "&", nodeMetrics },
-    { id: "f", text: "Fred", sideText: "&", nodeMetrics },
-    { id: "g", text: "Gus", sideText: "&", nodeMetrics },
+    { id: "a", text: "Alice", nodeAnnotations: { lowerLeft: "aa", upperRight: "aaaaa" }, nodeMetrics },
+    { id: "b", text: "Bob", nodeAnnotations: { upperLeft: "b b", lowerRight: "?????????" }, nodeMetrics },
+    { id: "c", text: "Caroline", nodeAnnotations: { }, nodeMetrics },
+    { id: "d", text: "Dave", nodeAnnotations: { }, nodeMetrics },
+    { id: "e", text: "Edward", nodeAnnotations: { }, nodeMetrics },
+    { id: "f", text: "Fred", nodeAnnotations: { }, nodeMetrics },
+    { id: "g", text: "Gus", nodeAnnotations: { }, nodeMetrics },
   ],
   edges: [
     { edgeID: "dc",  source: "d", sink: "c", sinkPos: -1.0, sinkLabel: ".", edgeMetrics },

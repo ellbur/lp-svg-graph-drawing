@@ -13,10 +13,10 @@ type nodeMetrics = {
 }
 
 type nodeAnnotations = {
-  lowerLeft: option<string>,
-  upperLeft: option<string>,
-  lowerRight: option<string>,
-  upperRight: option<string>,
+  lowerLeft?: string,
+  upperLeft?: string,
+  lowerRight?: string,
+  upperRight?: string,
 }
 
 type node = {

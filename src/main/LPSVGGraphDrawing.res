@@ -50,6 +50,7 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
         document->path(
           ~d="M 0 0 L 10 5 L 0 10 z",
           ~fill="#999",
+          ~class="edge-marker-end",
           ()
         )
       ],
@@ -63,6 +64,15 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
   module NodeRendering = {
     type t = {
       nodeG: Element.t,
+      nodeRelativeCX: float,
+      nodeRelativeCY: float,
+      nodeBoxWidth: float,
+      nodeBoxHeight: float,
+      nodeMarginLeft: float,
+      nodeMarginRight: float,
+      nodeMarginTop: float,
+      nodeMarginBottom: float,
+      nodeFlatWidth: float,
     }
   }
   
@@ -104,16 +114,16 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
         ~dominantBaseline="auto",
         ~fontSize=nodeMetrics.nodeSideTextFontSize,
         ~fontFamily=nodeMetrics.nodeSideTextFontFamily,
-        ~class="node-side-text",
+        ~class="node-annotation node-annotation-lower-left",
         ~textContent,
         ()
       ))
       let upperLeftElem: option<Element.t> = nodeAnnotations.upperLeft->Belt.Option.map(textContent => document->text(
         ~textAnchor="end",
-        ~dominantBaseline="text-top",
+        ~dominantBaseline="hanging",
         ~fontSize=nodeMetrics.nodeSideTextFontSize,
         ~fontFamily=nodeMetrics.nodeSideTextFontFamily,
-        ~class="node-side-text",
+        ~class="node-annotation node-annotation-upper-left",
         ~textContent,
         ()
       ))
@@ -122,16 +132,16 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
         ~dominantBaseline="auto",
         ~fontSize=nodeMetrics.nodeSideTextFontSize,
         ~fontFamily=nodeMetrics.nodeSideTextFontFamily,
-        ~class="node-side-text",
+        ~class="node-annotation node-annotation-lower-right",
         ~textContent,
         ()
       ))
       let upperRightElem: option<Element.t> = nodeAnnotations.upperRight->Belt.Option.map(textContent => document->text(
         ~textAnchor="start",
-        ~dominantBaseline="text-top",
+        ~dominantBaseline="hanging",
         ~fontSize=nodeMetrics.nodeSideTextFontSize,
         ~fontFamily=nodeMetrics.nodeSideTextFontFamily,
-        ~class="node-side-text",
+        ~class="node-annotation node-annotation-upper-right",
         ~textContent,
         ()
       ))
@@ -160,21 +170,37 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
       rectElem->Element.setAttribute("x", fts(leftAnnotationSize))
       rectElem->Element.setAttribute("y", "0")
       rectElem->Element.setAttribute("width", fts(rectWidth))
-      rectElem->Element.setAttribute("height", fts(rectWidth))
+      rectElem->Element.setAttribute("height", fts(rectHeight))
+      
+      textElem->Element.setAttribute("x", fts(leftAnnotationSize +. rectWidth/.2.0))
+      textElem->Element.setAttribute("y", fts(rectHeight/.2.0))
       
       lowerLeftElem->Belt.Option.forEach(el => el->Element.setAttribute("x", fts(leftAnnotationSize-.nodeMetrics.nodeSideTextXOffset)))
-      lowerLeftElem->Belt.Option.forEach(el => el->Element.setAttribute("y", fts(rectHeight)))
+      lowerLeftElem->Belt.Option.forEach(el => el->Element.setAttribute("y", fts(rectHeight -. 0.5*.nodeMetrics.nodeRoundingY)))
       
       upperLeftElem->Belt.Option.forEach(el => el->Element.setAttribute("x", fts(leftAnnotationSize-.nodeMetrics.nodeSideTextXOffset)))
       upperLeftElem->Belt.Option.forEach(el => el->Element.setAttribute("y", "0.0"))
       
       lowerRightElem->Belt.Option.forEach(el => el->Element.setAttribute("x", fts(leftAnnotationSize+.rectWidth+.nodeMetrics.nodeSideTextXOffset)))
-      lowerRightElem->Belt.Option.forEach(el => el->Element.setAttribute("y", fts(rectHeight)))
+      lowerRightElem->Belt.Option.forEach(el => el->Element.setAttribute("y", fts(rectHeight -. 0.5*.nodeMetrics.nodeRoundingY)))
       
       upperRightElem->Belt.Option.forEach(el => el->Element.setAttribute("x", fts(leftAnnotationSize+.rectWidth+.nodeMetrics.nodeSideTextXOffset)))
       upperRightElem->Belt.Option.forEach(el => el->Element.setAttribute("y", "0.0"))
       
-      nodeRenderings->Js.Dict.set(id, { NodeRendering.nodeG: nodeG })
+      let nodeRendering: NodeRendering.t = {
+        nodeG,
+        nodeRelativeCX: leftAnnotationSize +. rectWidth/.2.0,
+        nodeRelativeCY: rectHeight/.2.0,
+        nodeBoxWidth: rectWidth,
+        nodeBoxHeight: rectHeight,
+        nodeMarginLeft: leftAnnotationSize,
+        nodeMarginRight: rightAnnotationSize,
+        nodeMarginTop: 0.0,
+        nodeMarginBottom: 0.0,
+        nodeFlatWidth: rectWidth-. 2.0*.nodeMetrics.nodeRoundingX,
+      }
+      
+      nodeRenderings->Js.Dict.set(id, nodeRendering)
     })
   }
 
@@ -219,12 +245,16 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
         let {id} = node
         
         let nodeRendering = nodeRenderings->Js.Dict.unsafeGet(id)
-        let {width, height} = nodeRendering.NodeRendering.nodeG->getBBox
+        let {nodeBoxWidth, nodeBoxHeight, nodeMarginLeft, nodeMarginRight, nodeMarginTop, nodeMarginBottom} = nodeRendering
         
         ({
           id: id,
-          width,
-          height
+          width: nodeBoxWidth,
+          height: nodeBoxHeight,
+          marginLeft: nodeMarginLeft,
+          marginRight: nodeMarginRight,
+          marginTop: nodeMarginTop,
+          marginBottom: nodeMarginBottom,
         }: T.node)
       }),
       
@@ -244,31 +274,28 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
     let {nodeCenterXs, nodeCenterYs, edgeExtraNodes} = layout
     
     graph.nodes->Belt.Array.forEach(node => {
-      let {id, nodeMetrics} = node
+      let {id } = node
       
       let cx = nodeCenterXs->Js.Dict.unsafeGet(id)
       let cy = nodeCenterYs->Js.Dict.unsafeGet(id)
       
-      let boxWidth = boxWidths->Js.Dict.unsafeGet(id)
-      let boxHeight = boxHeights->Js.Dict.unsafeGet(id)
+      let nodeRendering = nodeRenderings->Js.Dict.unsafeGet(id)
+      let {nodeG, nodeRelativeCX, nodeRelativeCY} = nodeRendering
       
-      let textElem = textElems->Js.Dict.unsafeGet(id)
-      let rectElem = rectElems->Js.Dict.unsafeGet(id)
-      let sideTextElem = sideTextElems->Js.Dict.unsafeGet(id)
+      let cxT = cx -. nodeRelativeCX
+      let cyT = cy -. nodeRelativeCY
       
-      textElem->setAttribute("x", cx->fts)
-      textElem->setAttribute("y", cy->fts)
+      let transform = `translate(${fts(cxT)}, ${fts(cyT)})`
       
-      rectElem->setAttribute("x", fts(cx -. boxWidth/.2.0))
-      rectElem->setAttribute("y", fts(cy -. boxHeight/.2.0))
-      
-      sideTextElem->setAttribute("x", fts(cx +. boxWidth/.2.0 +. nodeMetrics.nodeSideTextXOffset))
-      sideTextElem->setAttribute("y", fts(cy))
+      nodeG->Element.setAttribute("transform", transform)
     })
     
     graph.edges->Belt.Array.forEach(edge => {
       let {edgeID, source, sink, sinkPos, edgeMetrics} = edge
-      let pathElem = pathElems->Js.Dict.unsafeGet(edgeID)
+      let edgeRendering = edgeRenderings->Js.Dict.unsafeGet(edgeID)
+      let {pathElem, sinkLabelElem} = edgeRendering
+      let sinkRendering = nodeRenderings->Js.Dict.unsafeGet(sink)
+      let sourceRendering = nodeRenderings->Js.Dict.unsafeGet(source)
       
       let cx1 = nodeCenterXs->Js.Dict.unsafeGet(source)
       let cy1 = nodeCenterYs->Js.Dict.unsafeGet(source)
@@ -276,9 +303,9 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
       let cx2 = nodeCenterXs->Js.Dict.unsafeGet(sink)
       let cy2 = nodeCenterYs->Js.Dict.unsafeGet(sink)
       
-      let boxHeight1 = boxHeights->Js.Dict.unsafeGet(source)
-      let boxFlatWidth2 = boxFlatWidths->Js.Dict.unsafeGet(sink)
-      let boxHeight2 = boxHeights->Js.Dict.unsafeGet(sink)
+      let boxHeight1 = sourceRendering.NodeRendering.nodeBoxHeight
+      let boxFlatWidth2 = sinkRendering.NodeRendering.nodeFlatWidth
+      let boxHeight2 = sinkRendering.NodeRendering.nodeBoxHeight
       
       let xStart = cx1
       let yStart = cy1 -. boxHeight1/.2.0
@@ -324,7 +351,6 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
       
       pathElem->setAttribute("d", workingD.contents)
       
-      let sinkLabelElem = sinkLabelElems->Js.Dict.unsafeGet(edgeID)
       sinkLabelElem->setAttribute("x", fts(xEnd +. edgeMetrics.edgeSinkLabelXOffset))
       sinkLabelElem->setAttribute("y", fts(yEnd +. edgeMetrics.edgeSinkLabelYOffset))
     })

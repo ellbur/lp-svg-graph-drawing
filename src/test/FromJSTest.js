@@ -30,13 +30,13 @@ const graphMetrics = {
 
 const graph = {
   nodes: [
-    { id: "a", text: "One", sideText: "1", nodeMetrics },
-    { id: "b", text: "Two", sideText: "2", nodeMetrics },
-    { id: "c", text: "Three", sideText: "3", nodeMetrics },
-    { id: "d", text: "Four", sideText: "4", nodeMetrics },
-    { id: "e", text: "Five", sideText: "5", nodeMetrics },
-    { id: "f", text: "Six", sideText: "6", nodeMetrics },
-    { id: "g", text: "Seven", sideText: "7", nodeMetrics },
+    { id: "a", text: "One", nodeAnnotations: { upperRight: "*" }, nodeMetrics },
+    { id: "b", text: "Two", nodeAnnotations: { }, nodeMetrics },
+    { id: "c", text: "Three", nodeAnnotations: { }, nodeMetrics },
+    { id: "d", text: "Four", nodeAnnotations: { }, nodeMetrics },
+    { id: "e", text: "Five", nodeAnnotations: { }, nodeMetrics },
+    { id: "f", text: "Six", nodeAnnotations: { upperRight: "!" }, nodeMetrics },
+    { id: "g", text: "Seven", nodeAnnotations: { }, nodeMetrics },
   ],
   edges: [
     { edgeID: "dc",  source: "d", sink: "c", sinkPos: -1.0, sinkLabel: "a", edgeMetrics },
