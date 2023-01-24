@@ -63,5 +63,5 @@ let container = document->Document.getElementById("root")->Belt.Option.getExn
 let svg = document->Document.createElementNS(svgNS, "svg")
 container->Element.appendChild(~child=svg)
 
-LPSVGGraphDrawing.renderGraph(~document, ~svg, ~graph)
+LPSVGGraphDrawing.renderGraph(~document, ~svg, ~graph)->ignore
 
