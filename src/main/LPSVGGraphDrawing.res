@@ -74,6 +74,12 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
       nodeMarginTop: float,
       nodeMarginBottom: float,
       nodeFlatWidth: float,
+      border: Element.t,
+      label: Element.t,
+      lowerLeftLabel: option<Element.t>,
+      upperLeftLabel: option<Element.t>,
+      upperRightLabel: option<Element.t>,
+      lowerRightLabel: option<Element.t>,
     }
   }
   
@@ -199,6 +205,12 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
         nodeMarginTop: 0.0,
         nodeMarginBottom: 0.0,
         nodeFlatWidth: rectWidth-. 2.0*.nodeMetrics.nodeRoundingX,
+        border: rectElem,
+        label: textElem,
+        lowerLeftLabel: lowerLeftElem,
+        upperLeftLabel: upperLeftElem,
+        upperRightLabel: upperRightElem,
+        lowerRightLabel: lowerRightElem,
       }
       
       nodeRenderings->Js.Dict.set(id, nodeRendering)
@@ -361,9 +373,32 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
   svg->setAttribute("width", fts(totalWidth))
   svg->setAttribute("height", fts(totalHeight))
   
+  let renderedNodes = Js.Dict.empty()
+  nodeRenderings->Js.Dict.entries->Js.Array2.forEach(((nodeID, rendering: NodeRendering.t)) => {
+    renderedNodes->Js.Dict.set(nodeID, ({
+      gx: (layout.nodeCenterXs->Js.Dict.unsafeGet(nodeID)) -. (rendering.nodeRelativeCX),
+      gy: (layout.nodeCenterYs->Js.Dict.unsafeGet(nodeID)) -. (rendering.nodeRelativeCY),
+      g: rendering.nodeG,
+      border: rendering.border,
+      label: rendering.label,
+      lowerLeftLabel: rendering.lowerLeftLabel,
+      upperLeftLabel: rendering.upperLeftLabel,
+      upperRightLabel: rendering.upperRightLabel,
+      lowerRightLabel: rendering.lowerRightLabel,
+    }: RenderedGraph.renderedNode))
+  })
+  
+  let renderedEdges = Js.Dict.empty()
+  edgeRenderings->Js.Dict.entries->Js.Array2.forEach(((edgeID, rendering: EdgeRendering.t)) => {
+    renderedEdges->Js.Dict.set(edgeID, ({
+      path: rendering.pathElem,
+      sinkLabel: rendering.sinkLabelElem,
+    }: RenderedGraph.renderedEdge))
+  })
+  
   ({
-    nodes: Js.Dict.empty(),
-    edges: Js.Dict.empty(),
+    nodes: renderedNodes,
+    edges: renderedEdges,
     layout: layout,
   }: RenderedGraph.t)
 }
