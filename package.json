@@ -13,7 +13,7 @@
   "license": "WTFPL (http://www.wtfpl.net)",
   "main": "lib/es6/src/main/LPSVGGraphDrawing.bs.js",
   "dependencies": {
-    "@ellbur/lplayout": "^1.2.3",
+    "@ellbur/lplayout": "^1.2.4",
     "@rescript/std": "10.1.1",
     "@ryyppy/rescript-promise": "2.1.0",
     "rescript-webapi": "0.6.1"
