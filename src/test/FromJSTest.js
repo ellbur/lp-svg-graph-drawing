@@ -60,7 +60,7 @@ let svgNS = "http://www.w3.org/2000/svg";
 let svg = document.createElementNS(svgNS, "svg");
 container.appendChild(svg);
 
-import {renderGraph} from '../../lib/es6/src/main/LPSVGGraphDrawing.bs.js';
+import {renderGraph} from '../../lib/es6/src/main/LPSVGGraphDrawing.res.js';
 
 renderGraph(document, svg, graph);
 

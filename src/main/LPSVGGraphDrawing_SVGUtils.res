@@ -61,7 +61,7 @@ let text = (
   el->sa("font-size", fontSize)
   el->sa("font-family", fontFamily)
   el->sa("class", class)
-  textContent->Belt.Option.forEach(el->Element.setTextContent)
+  textContent->Option.forEach(Element.setTextContent(el, _))
   el
 }
 

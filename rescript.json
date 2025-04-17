@@ -1,0 +1,29 @@
+{
+  "name": "@ellbur/lp-svg-graph-drawing",
+  "sources": [
+    {
+      "dir": "src/main",
+      "subdirs": true
+    },
+    {
+      "dir": "src/test",
+      "subdirs": true,
+      "type": "dev"
+    }
+  ],
+  "package-specs": {
+    "module": "esmodule",
+    "in-source": false
+  },
+  "suffix": ".res.js",
+  "bs-dependencies": [
+    "@rescript/core",
+    "@ellbur/lplayout",
+    "rescript-webapi"
+  ],
+  "bs-dev-dependencies": [
+  ],
+  "bsc-flags": [
+    "-open RescriptCore"
+  ]
+}
