@@ -5,6 +5,12 @@ module RenderedGraph = LPSVGGraphDrawing_RenderedGraph
 module Document = Webapi.Dom.Document
 module Element = Webapi.Dom.Element
 
+type stringMetrics = {
+  stringWidth: float,
+  stringHeight: float
+}
+type textSizer = NativeBBox | Calculated((string, ~fontFamily: string, ~fontSize: string) => stringMetrics)
+
 module SVGRect = {
   type t = {
     x: float,
@@ -15,6 +21,16 @@ module SVGRect = {
 }
 
 @send external getBBox: Dom.element => SVGRect.t = "getBBox"
+
+let textElemMetrics = (textSizer, elem, ~fontSize, ~fontFamily) => switch textSizer {
+  | NativeBBox =>
+      let bbox = elem->getBBox
+      {
+        stringWidth: bbox.width,
+        stringHeight: bbox.height
+      }
+  | Calculated(f) => f(elem->Element.textContent, ~fontSize, ~fontFamily)
+}
 
 let {setAttribute} = module(Webapi.Dom.Element)
 let fts = Belt.Float.toString
@@ -32,7 +48,12 @@ let removeAllChildren = el => {
   step()
 }
 
-let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) => {
+let minFloat = (x: float, y: float) => if (x < y) { x } else { y }
+let maxFloat = (x: float, y: float) => if (x < y) { x } else { y }
+let arrayMin = ar => ar->Array.reduce(Pervasives.max_float, minFloat)
+let arrayMax = ar => ar->Array.reduce(Pervasives.min_float, maxFloat)
+
+let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, ~textSizer: textSizer = NativeBBox) => {
   let {rect, text, defs, marker, path, g} = module(LPSVGGraphDrawing_SVGUtils)
   
   removeAllChildren(svg)
@@ -161,16 +182,16 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
       mainG->Element.appendChild(~child=nodeG)
       
       let leftAnnotationSize = [lowerLeftElem, upperLeftElem]->Belt.Array.map(el => el->Belt.Option.mapWithDefault(0.0, el => {
-        let {width} = el->getBBox
+        let {stringWidth: width} = textElemMetrics(textSizer, el, ~fontSize=nodeMetrics.nodeSideTextFontSize, ~fontFamily=nodeMetrics.nodeSideTextFontFamily)
         width +. nodeMetrics.nodeSideTextXOffset
       }))->Belt.Array.reduce(0.0, Js.Math.max_float)
       
       let rightAnnotationSize = [lowerRightElem, upperRightElem]->Belt.Array.map(el => el->Belt.Option.mapWithDefault(0.0, el => {
-        let {width} = el->getBBox
+        let {stringWidth: width} = textElemMetrics(textSizer, el, ~fontSize=nodeMetrics.nodeSideTextFontSize, ~fontFamily=nodeMetrics.nodeSideTextFontFamily)
         width +. nodeMetrics.nodeSideTextXOffset
       }))->Belt.Array.reduce(0.0, Js.Math.max_float)
       
-      let {width: textWidth, height: textHeight} = textElem->getBBox
+      let {stringWidth: textWidth, stringHeight: textHeight} = textElemMetrics(textSizer, textElem, ~fontSize=nodeMetrics.nodeFontSize, ~fontFamily=nodeMetrics.nodeFontFamily)
       let rectWidth = textWidth +. 2.0*.nodeMetrics.nodeHorizontalPadding
       let rectHeight = textHeight +. 2.0*.nodeMetrics.nodeVerticalPadding
       
@@ -367,9 +388,24 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph) 
     sinkLabelElem->setAttribute("y", fts(yEnd +. edgeMetrics.edgeSinkLabelYOffset))
   })
   
-  let bbox = mainG->getBBox
-  let totalWidth = bbox.x*.2.0 +. bbox.width
-  let totalHeight = bbox.y*.2.0 +. bbox.height
+  let totalMinX = nodeRenderings->Js.Dict.values->Array.map((r: NodeRendering.t) => {
+    r.nodeRelativeCX -. r.nodeBoxWidth/.2.0 -. r.nodeMarginLeft
+  })->arrayMin
+
+  let totalMaxX = nodeRenderings->Js.Dict.values->Array.map((r: NodeRendering.t) => {
+    r.nodeRelativeCX +. r.nodeBoxWidth/.2.0 +. r.nodeMarginRight
+  })->arrayMax
+
+  let totalMinY = nodeRenderings->Js.Dict.values->Array.map((r: NodeRendering.t) => {
+    r.nodeRelativeCY -. r.nodeBoxHeight/.2.0 -. r.nodeMarginTop
+  })->arrayMin
+
+  let totalMaxY = nodeRenderings->Js.Dict.values->Array.map((r: NodeRendering.t) => {
+    r.nodeRelativeCY +. r.nodeBoxHeight/.2.0 +. r.nodeMarginBottom
+  })->arrayMax
+
+  let totalWidth = totalMaxX -. totalMinX
+  let totalHeight = totalMaxY -. totalMinY
   svg->setAttribute("width", fts(totalWidth))
   svg->setAttribute("height", fts(totalHeight))
   
