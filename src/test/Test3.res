@@ -31,7 +31,7 @@ let graphMetrics: Graph.graphMetrics = {
 let graph: Graph.graph = {
   nodes: [
     { id: "a", text: "Alice", nodeAnnotations: { lowerLeft: "aa", upperRight: "aaaaa" }, nodeMetrics },
-    { id: "b", text: "Bob", nodeAnnotations: { upperLeft: "b b", lowerRight: "?????????" }, nodeMetrics },
+    { id: "b", text: "Bob", nodeAnnotations: { upperLeft: "b b", lowerRight: "?" }, nodeMetrics },
     { id: "c", text: "Caroline", nodeAnnotations: { }, nodeMetrics },
     { id: "d", text: "Dave", nodeAnnotations: { }, nodeMetrics },
     { id: "e", text: "Edward", nodeAnnotations: { }, nodeMetrics },
@@ -40,7 +40,7 @@ let graph: Graph.graph = {
   ],
   edges: [
     { edgeID: "dc",  source: "d", sink: "c", sinkPos: -1.0, sinkLabel: ".", edgeMetrics },
-    { edgeID: "eb",  source: "e", sink: "b", sinkPos:  0.0, sinkLabel: ",", edgeMetrics },
+    { edgeID: "eb",  source: "e", sink: "b", sinkPos:  0.0, sinkLabel: "abcdefgh", edgeMetrics },
     { edgeID: "eg1", source: "e", sink: "g", sinkPos: -1.0, sinkLabel: "/", edgeMetrics },
     { edgeID: "eg2", source: "e", sink: "g", sinkPos: +1.0, sinkLabel: "/", edgeMetrics },
     { edgeID: "gd",  source: "g", sink: "d", sinkPos:  0.0, sinkLabel: "/", edgeMetrics },

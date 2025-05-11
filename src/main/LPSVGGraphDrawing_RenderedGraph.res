@@ -1,6 +1,13 @@
 
 module Element = Webapi.Dom.Element
 
+type bbox = {
+  minX: float,
+  maxX: float,
+  minY: float,
+  maxY: float
+}
+
 type renderedNode = {
   gx: float,
   gy: float,
@@ -11,11 +18,13 @@ type renderedNode = {
   upperLeftLabel: option<Element.t>,
   upperRightLabel: option<Element.t>,
   lowerRightLabel: option<Element.t>,
+  nodeBBox: bbox
 }
 
 type renderedEdge = {
   path: Element.t,
   sinkLabel: Element.t,
+  edgeBBox: bbox
 }
 
 type t = {

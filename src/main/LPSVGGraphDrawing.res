@@ -49,9 +49,9 @@ let removeAllChildren = el => {
 }
 
 let minFloat = (x: float, y: float) => if (x < y) { x } else { y }
-let maxFloat = (x: float, y: float) => if (x < y) { x } else { y }
-let arrayMin = ar => ar->Array.reduce(Pervasives.max_float, minFloat)
-let arrayMax = ar => ar->Array.reduce(Pervasives.min_float, maxFloat)
+let maxFloat = (x: float, y: float) => if (x > y) { x } else { y }
+let arrayMin = ar => ar->Array.reduce(Pervasives.infinity, minFloat)
+let arrayMax = ar => ar->Array.reduce(Pervasives.neg_infinity, maxFloat)
 
 let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, ~textSizer: textSizer = NativeBBox) => {
   let {rect, text, defs, marker, path, g} = module(LPSVGGraphDrawing_SVGUtils)
@@ -94,6 +94,8 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
       nodeMarginRight: float,
       nodeMarginTop: float,
       nodeMarginBottom: float,
+      nodeWidth: float,
+      nodeHeight: float,
       nodeFlatWidth: float,
       border: Element.t,
       label: Element.t,
@@ -108,6 +110,15 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
     type t = {
       pathElem: Element.t,
       sinkLabelElem: Element.t,
+      metrics: Graph.edgeMetrics,
+    }
+  }
+
+  module EdgePlacement = {
+    type t = {
+      pathPoints: array<(float, float)>,
+      sinkLabelX: float,
+      sinkLabelY: float
     }
   }
   
@@ -223,6 +234,8 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
         nodeBoxHeight: rectHeight,
         nodeMarginLeft: leftAnnotationSize,
         nodeMarginRight: rightAnnotationSize,
+        nodeWidth: leftAnnotationSize +. rectWidth +. rightAnnotationSize,
+        nodeHeight: rectHeight,
         nodeMarginTop: 0.0,
         nodeMarginBottom: 0.0,
         nodeFlatWidth: rectWidth-. 2.0*.nodeMetrics.nodeRoundingX,
@@ -265,7 +278,8 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
       
       edgeRenderings->Js.Dict.set(edgeID, {
         EdgeRendering.pathElem: edgePath,
-        EdgeRendering.sinkLabelElem: edgeSinkText
+        EdgeRendering.sinkLabelElem: edgeSinkText,
+        metrics: edgeMetrics
       })
     })
   }
@@ -322,6 +336,8 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
     
     nodeG->Element.setAttribute("transform", transform)
   })
+
+  let edgePlacements = Js.Dict.empty()
   
   graph.edges->Belt.Array.forEach(edge => {
     let {edgeID, source, sink, sinkPos, edgeMetrics} = edge
@@ -384,36 +400,28 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
     
     pathElem->setAttribute("d", workingD.contents)
     
-    sinkLabelElem->setAttribute("x", fts(xEnd +. edgeMetrics.edgeSinkLabelXOffset))
-    sinkLabelElem->setAttribute("y", fts(yEnd +. edgeMetrics.edgeSinkLabelYOffset))
+    let sinkLabelX = xEnd +. edgeMetrics.edgeSinkLabelXOffset
+    let sinkLabelY = yEnd +. edgeMetrics.edgeSinkLabelYOffset
+
+    sinkLabelElem->setAttribute("x", fts(sinkLabelX))
+    sinkLabelElem->setAttribute("y", fts(sinkLabelY))
+
+    edgePlacements->Js.Dict.set(edgeID, {
+      EdgePlacement.pathPoints: pointsToTravelThrough,
+      sinkLabelX,
+      sinkLabelY
+    })
   })
-  
-  let totalMinX = nodeRenderings->Js.Dict.values->Array.map((r: NodeRendering.t) => {
-    r.nodeRelativeCX -. r.nodeBoxWidth/.2.0 -. r.nodeMarginLeft
-  })->arrayMin
-
-  let totalMaxX = nodeRenderings->Js.Dict.values->Array.map((r: NodeRendering.t) => {
-    r.nodeRelativeCX +. r.nodeBoxWidth/.2.0 +. r.nodeMarginRight
-  })->arrayMax
-
-  let totalMinY = nodeRenderings->Js.Dict.values->Array.map((r: NodeRendering.t) => {
-    r.nodeRelativeCY -. r.nodeBoxHeight/.2.0 -. r.nodeMarginTop
-  })->arrayMin
-
-  let totalMaxY = nodeRenderings->Js.Dict.values->Array.map((r: NodeRendering.t) => {
-    r.nodeRelativeCY +. r.nodeBoxHeight/.2.0 +. r.nodeMarginBottom
-  })->arrayMax
-
-  let totalWidth = totalMaxX -. totalMinX
-  let totalHeight = totalMaxY -. totalMinY
-  svg->setAttribute("width", fts(totalWidth))
-  svg->setAttribute("height", fts(totalHeight))
   
   let renderedNodes = Js.Dict.empty()
   nodeRenderings->Js.Dict.entries->Js.Array2.forEach(((nodeID, rendering: NodeRendering.t)) => {
+    let x = (layout.nodeCenterXs->Js.Dict.unsafeGet(nodeID))
+    let y = (layout.nodeCenterYs->Js.Dict.unsafeGet(nodeID))
+    let gx = x -. (rendering.nodeRelativeCX)
+    let gy = y -. (rendering.nodeRelativeCY)
     renderedNodes->Js.Dict.set(nodeID, ({
-      gx: (layout.nodeCenterXs->Js.Dict.unsafeGet(nodeID)) -. (rendering.nodeRelativeCX),
-      gy: (layout.nodeCenterYs->Js.Dict.unsafeGet(nodeID)) -. (rendering.nodeRelativeCY),
+      gx,
+      gy,
       g: rendering.nodeG,
       border: rendering.border,
       label: rendering.label,
@@ -421,16 +429,76 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
       upperLeftLabel: rendering.upperLeftLabel,
       upperRightLabel: rendering.upperRightLabel,
       lowerRightLabel: rendering.lowerRightLabel,
+      nodeBBox: {
+        minX: gx,
+        maxX: gx +. rendering.nodeWidth,
+        minY: gy,
+        maxY: gy +. rendering.nodeHeight,
+      }
     }: RenderedGraph.renderedNode))
   })
   
   let renderedEdges = Js.Dict.empty()
   edgeRenderings->Js.Dict.entries->Js.Array2.forEach(((edgeID, rendering: EdgeRendering.t)) => {
+    let placement: EdgePlacement.t = edgePlacements->Js.Dict.unsafeGet(edgeID)
+    let pathXs = placement.pathPoints->Array.map(((x, _)) => x)
+    let pathYs = placement.pathPoints->Array.map(((_, y)) => y)
+
+    let pathMinX = pathXs->arrayMin
+    let pathMaxX = pathXs->arrayMax
+    let pathMinY = pathYs->arrayMin
+    let pathMaxY = pathYs->arrayMax
+
+    let {stringWidth: labelWidth, stringHeight: labelHeight} = textElemMetrics(textSizer, rendering.sinkLabelElem, ~fontSize=rendering.metrics.edgeSinkLabelFontSize, ~fontFamily=rendering.metrics.edgeSinkLabelFontFamily)
+
+    let labelMinX = placement.sinkLabelX
+    let labelMinY = placement.sinkLabelY
+    let labelMaxX = placement.sinkLabelX +. labelWidth
+    let labelMaxY = placement.sinkLabelY +. labelHeight
+
+    let minX = minFloat(pathMinX, labelMinX)
+    let minY = minFloat(pathMinY, labelMinY)
+    let maxX = maxFloat(pathMaxX, labelMaxX)
+    let maxY = maxFloat(pathMaxY, labelMaxY)
+
     renderedEdges->Js.Dict.set(edgeID, ({
       path: rendering.pathElem,
       sinkLabel: rendering.sinkLabelElem,
+      edgeBBox: {
+        minX,
+        maxX,
+        minY,
+        maxY,
+      }
     }: RenderedGraph.renderedEdge))
   })
+
+  let nodeMaxX = renderedNodes->Js.Dict.values->Array.map((r: RenderedGraph.renderedNode) => {
+    r.nodeBBox.maxX
+  })->arrayMax
+
+  let nodeMaxY = renderedNodes->Js.Dict.values->Array.map((r: RenderedGraph.renderedNode) => {
+    r.nodeBBox.maxY
+  })->arrayMax
+
+  let edgeMaxX = renderedEdges->Js.Dict.values->Array.map(e => e.edgeBBox.maxX)->arrayMax
+  let edgeMaxY = renderedEdges->Js.Dict.values->Array.map(e => e.edgeBBox.maxY)->arrayMax
+
+  let totalMaxX = maxFloat(nodeMaxX, edgeMaxX)
+  let totalMaxY = maxFloat(nodeMaxY, edgeMaxY)
+
+  let totalWidth = totalMaxX +. (graph.graphMetrics.xSpacing /. 2.0)
+  let totalHeight = totalMaxY +. (graph.graphMetrics.ySpacing /. 2.0)
+
+  renderedNodes->Js.Dict.entries->Array.forEach(((k, r)) => {
+    Console.log2(k, r.nodeBBox)
+  })
+
+  Console.log2("totalWidth", totalWidth)
+  Console.log2("totalHeight", totalHeight)
+
+  svg->setAttribute("width", fts(totalWidth))
+  svg->setAttribute("height", fts(totalHeight))
   
   ({
     nodes: renderedNodes,

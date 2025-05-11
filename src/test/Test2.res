@@ -32,7 +32,7 @@ let graph: Graph.graph = {
   nodes: [
     { id: "a", text: "Alice", nodeAnnotations: { lowerLeft: "ll", upperLeft: "ul", lowerRight: "lr", upperRight: "ur" }, nodeMetrics },
     { id: "b", text: "Bob", nodeAnnotations: { lowerLeft: "bbbbbbbb", lowerRight: "BBBBBBBBBBBBBBBBBBBBB" }, nodeMetrics },
-    { id: "c", text: "Carole", nodeAnnotations: { upperLeft: "CCCCCC" }, nodeMetrics },
+    { id: "c", text: "Carole", nodeAnnotations: { upperLeft: "CCCCCCCCCCCCCCCCCC" }, nodeMetrics },
   ],
   edges: [
     { edgeID: "ba", source: "b", sink: "a", sinkPos: -1.0, sinkLabel: "ba", edgeMetrics },
