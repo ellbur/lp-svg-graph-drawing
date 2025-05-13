@@ -490,13 +490,6 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
   let totalWidth = totalMaxX +. (graph.graphMetrics.xSpacing /. 2.0)
   let totalHeight = totalMaxY +. (graph.graphMetrics.ySpacing /. 2.0)
 
-  renderedNodes->Js.Dict.entries->Array.forEach(((k, r)) => {
-    Console.log2(k, r.nodeBBox)
-  })
-
-  Console.log2("totalWidth", totalWidth)
-  Console.log2("totalHeight", totalHeight)
-
   svg->setAttribute("width", fts(totalWidth))
   svg->setAttribute("height", fts(totalHeight))
   
