@@ -1,6 +1,6 @@
 {
   "name": "@ellbur/lp-svg-graph-drawing",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "SVG graph drawing and layout using first-order cost functions",
   "author": "Owen Healy <owen@owenehealy.com>",
   "license": "WTFPL (http://www.wtfpl.net)",
