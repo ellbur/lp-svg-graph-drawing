@@ -44,9 +44,12 @@ type edge = {
   edgeMetrics: edgeMetrics,
 }
 
+type orientation = LPLayout.orientation
+
 type graphMetrics = {
   xSpacing: float,
   ySpacing: float,
+  orientation: orientation
 }
 
 type graph = {

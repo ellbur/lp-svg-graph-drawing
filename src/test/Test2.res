@@ -26,6 +26,7 @@ let edgeMetrics: Graph.edgeMetrics = {
 let graphMetrics: Graph.graphMetrics = {
   xSpacing: 40.0,
   ySpacing: 60.0,
+  orientation:FlowingUp
 }
 
 let graph: Graph.graph = {

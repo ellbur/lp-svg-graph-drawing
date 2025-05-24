@@ -1,5 +1,6 @@
 
 module Graph = LPSVGGraphDrawing.Graph
+type orientation = Graph.orientation
 
 let nodeMetrics: Graph.nodeMetrics = {
   nodeBorderStrokeWidth: "1",
@@ -19,17 +20,17 @@ let edgeMetrics: Graph.edgeMetrics = {
   edgeSinkLabelFontSize: "14",
   edgeSinkLabelFontFamily: "monospace",
   edgeSinkLabelXOffset: 8.0,
-  edgeSinkLabelYOffset: -5.0,
+  edgeSinkLabelYOffset: 7.0,
   edgeRectangularness: 1.0,
 }
 
-let graphMetrics: Graph.graphMetrics = {
+let graphMetrics: orientation => Graph.graphMetrics = orientation => {
   xSpacing: 40.0,
   ySpacing: 60.0,
-  orientation: FlowingUp
+  orientation
 }
 
-let graph: Graph.graph = {
+let graph: orientation => Graph.graph = orientation => {
   nodes: [
     { id: "a", text: "One", nodeAnnotations: { upperRight: "*" }, nodeMetrics },
     { id: "b", text: "Two", nodeAnnotations: { }, nodeMetrics },
@@ -51,7 +52,7 @@ let graph: Graph.graph = {
     { edgeID: "ga",  source: "g", sink: "a", sinkPos: -1.0, sinkLabel: "i", edgeMetrics },
     { edgeID: "ea",  source: "e", sink: "a", sinkPos: +1.0, sinkLabel: "j", edgeMetrics },
   ],
-  graphMetrics
+  graphMetrics: graphMetrics(orientation)
 }
 
 module Document = Webapi.Dom.Document
@@ -61,9 +62,14 @@ let document = Webapi.Dom.document
 let svgNS = "http://www.w3.org/2000/svg"
 
 let container = document->Document.getElementById("root")->Belt.Option.getExn
-let svg = document->Document.createElementNS(svgNS, "svg")
-container->Element.appendChild(~child=svg)
 
-let renderedGraph = LPSVGGraphDrawing.renderGraph(~document, ~svg, ~graph)
-Js.Console.log(renderedGraph)
+let svg1 = document->Document.createElementNS(svgNS, "svg")
+container->Element.appendChild(~child=svg1)
+
+let svg2 = document->Document.createElementNS(svgNS, "svg")
+container->Element.appendChild(~child=svg2)
+
+let renderedGraph1 = LPSVGGraphDrawing.renderGraph(~document, ~svg=svg1, ~graph = graph(FlowingUp))
+
+let renderedGraph2 = LPSVGGraphDrawing.renderGraph(~document, ~svg=svg2, ~graph = graph(FlowingDown))
 

@@ -55,6 +55,7 @@ let arrayMax = ar => ar->Array.reduce(Pervasives.neg_infinity, maxFloat)
 
 let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, ~textSizer: textSizer = NativeBBox) => {
   let {rect, text, defs, marker, path, g} = module(LPSVGGraphDrawing_SVGUtils)
+  let {orientation} = graph.graphMetrics
   
   removeAllChildren(svg)
   
@@ -263,9 +264,13 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
         ()
       )
         
+      let edgeSinkBaseline = switch orientation {
+        | FlowingUp => "hanging"
+        | FlowingDown => "auto"
+      }
       let edgeSinkText = document->text(
         ~textAnchor="start",
-        ~dominantBaseline="hanging",
+        ~dominantBaseline=edgeSinkBaseline,
         ~fontSize=edgeMetrics.edgeSinkLabelFontSize,
         ~fontFamily=edgeMetrics.edgeSinkLabelFontFamily,
         ~class="edge-sink-text",
@@ -317,7 +322,7 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
     })
   }
   
-  let layout = LPLayout.doLayout(lpGraph, {xSpacing: graph.graphMetrics.xSpacing, ySpacing: graph.graphMetrics.ySpacing})
+  let layout = LPLayout.doLayout(lpGraph, {xSpacing: graph.graphMetrics.xSpacing, ySpacing: graph.graphMetrics.ySpacing, orientation: graph.graphMetrics.orientation})
   let {nodeCenterXs, nodeCenterYs, edgeExtraNodes} = layout
   
   graph.nodes->Belt.Array.forEach(node => {
@@ -357,10 +362,16 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
     let boxHeight2 = sinkRendering.NodeRendering.nodeBoxHeight
     
     let xStart = cx1
-    let yStart = cy1 -. boxHeight1/.2.0
+    let yStart = switch orientation {
+      | FlowingUp => cy1 -. boxHeight1/.2.0
+      | FlowingDown => cy1 +. boxHeight1/.2.0
+    }
     
     let xEnd = cx2 +. sinkPos*.boxFlatWidth2*.0.9/.2.0
-    let yEnd = cy2 +. boxHeight2/.2.0 +. 10.0
+    let yEnd = switch orientation {
+      | FlowingUp => cy2 +. boxHeight2/.2.0 +. 10.0
+      | FlowingDown => cy2 -. boxHeight2/.2.0 -. 10.0
+    }
     
     let pointsToTravelThrough = [(xStart, yStart)]
     edgeExtraNodes->Js.Dict.get(edgeID)->Belt.Option.forEach(extraNodes => {
@@ -401,7 +412,10 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
     pathElem->setAttribute("d", workingD.contents)
     
     let sinkLabelX = xEnd +. edgeMetrics.edgeSinkLabelXOffset
-    let sinkLabelY = yEnd +. edgeMetrics.edgeSinkLabelYOffset
+    let sinkLabelY = switch orientation {
+      | FlowingUp => yEnd -. 10.0 +. edgeMetrics.edgeSinkLabelYOffset
+      | FlowingDown => yEnd +. 10.0 -. edgeMetrics.edgeSinkLabelYOffset
+    }
 
     sinkLabelElem->setAttribute("x", fts(sinkLabelX))
     sinkLabelElem->setAttribute("y", fts(sinkLabelY))

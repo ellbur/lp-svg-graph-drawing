@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@rescript/core": "1.6.1",
-    "@ellbur/lplayout": "1.2.5",
+    "@ellbur/lplayout": "1.3.0",
     "rescript-webapi": "0.10.0"
   }
 }
