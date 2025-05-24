@@ -5,32 +5,9 @@ module RenderedGraph = LPSVGGraphDrawing_RenderedGraph
 module Document = Webapi.Dom.Document
 module Element = Webapi.Dom.Element
 
-type stringMetrics = {
-  stringWidth: float,
-  stringHeight: float
-}
-type textSizer = NativeBBox | Calculated((string, ~fontFamily: string, ~fontSize: string) => stringMetrics)
-
-module SVGRect = {
-  type t = {
-    x: float,
-    y: float,
-    width: float,
-    height: float
-  }
-}
-
-@send external getBBox: Dom.element => SVGRect.t = "getBBox"
-
-let textElemMetrics = (textSizer, elem, ~fontSize, ~fontFamily) => switch textSizer {
-  | NativeBBox =>
-      let bbox = elem->getBBox
-      {
-        stringWidth: bbox.width,
-        stringHeight: bbox.height
-      }
-  | Calculated(f) => f(elem->Element.textContent, ~fontSize, ~fontFamily)
-}
+type textSizer = LPSVGGraphDrawing_StringMetrics.textSizer
+type stringMetrics = LPSVGGraphDrawing_StringMetrics.stringMetrics
+let textElemMetrics = LPSVGGraphDrawing_StringMetrics.textElemMetrics
 
 let {setAttribute} = module(Webapi.Dom.Element)
 let fts = Belt.Float.toString
@@ -239,7 +216,7 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
         nodeHeight: rectHeight,
         nodeMarginTop: 0.0,
         nodeMarginBottom: 0.0,
-        nodeFlatWidth: rectWidth-. 2.0*.nodeMetrics.nodeRoundingX,
+        nodeFlatWidth: rectWidth -. 2.0*.nodeMetrics.nodeRoundingX,
         border: rectElem,
         label: textElem,
         lowerLeftLabel: lowerLeftElem,
