@@ -1,6 +1,8 @@
 
 module Graph = LPSVGGraphDrawing_Graph
 module RenderedGraph = LPSVGGraphDrawing_RenderedGraph
+module TextNode = LPSVGGraphDrawing_TextNode
+module StringMetrics = LPSVGGraphDrawing_StringMetrics
 
 type stringMetrics = LPSVGGraphDrawing_StringMetrics.stringMetrics
 type textSizer = LPSVGGraphDrawing_StringMetrics.textSizer

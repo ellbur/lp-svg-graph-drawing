@@ -12,12 +12,6 @@ type renderedNode = {
   gx: float,
   gy: float,
   g: Element.t,
-  border: Element.t,
-  label: Element.t,
-  lowerLeftLabel: option<Element.t>,
-  upperLeftLabel: option<Element.t>,
-  upperRightLabel: option<Element.t>,
-  lowerRightLabel: option<Element.t>,
   nodeBBox: bbox
 }
 

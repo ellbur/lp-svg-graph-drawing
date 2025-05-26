@@ -17,7 +17,8 @@ type edge = {
   edgeID: string,
   source: string,
   sink: string,
-  sinkPos: float,
+  sourceAttachment: string,
+  sinkAttachment: string,
   sinkLabel: string,
   edgeMetrics: edgeMetrics,
 }

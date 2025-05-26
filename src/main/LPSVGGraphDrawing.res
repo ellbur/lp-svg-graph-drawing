@@ -1,6 +1,8 @@
 
 module Graph = LPSVGGraphDrawing_Graph
 module RenderedGraph = LPSVGGraphDrawing_RenderedGraph
+module TextNode = LPSVGGraphDrawing_TextNode
+module StringMetrics = LPSVGGraphDrawing_StringMetrics
 
 module Document = Webapi.Dom.Document
 module Element = Webapi.Dom.Element
@@ -31,11 +33,11 @@ let arrayMin = ar => ar->Array.reduce(Pervasives.infinity, minFloat)
 let arrayMax = ar => ar->Array.reduce(Pervasives.neg_infinity, maxFloat)
 
 let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, ~textSizer: textSizer = NativeBBox) => {
-  let {rect, text, defs, marker, path, g} = module(LPSVGGraphDrawing_SVGUtils)
+  let {text, defs, marker, path, g} = module(LPSVGGraphDrawing_SVGUtils)
   let {orientation} = graph.graphMetrics
   
-  removeAllChildren(svg)
-  
+  let nodeMap = graph.nodes->Array.map(n => (n.id, n))->Dict.fromArray
+
   svg->Element.appendChild(~child=document->defs(~children=[
     document->marker(
       ~id="arrow",
@@ -57,32 +59,6 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
       ()
     )
   ]))
-  
-  let mainG = document->g(~children=[])
-  svg->Element.appendChild(~child=mainG)
-  
-  module NodeRendering = {
-    type t = {
-      nodeG: Element.t,
-      nodeRelativeCX: float,
-      nodeRelativeCY: float,
-      nodeBoxWidth: float,
-      nodeBoxHeight: float,
-      nodeMarginLeft: float,
-      nodeMarginRight: float,
-      nodeMarginTop: float,
-      nodeMarginBottom: float,
-      nodeWidth: float,
-      nodeHeight: float,
-      nodeFlatWidth: float,
-      border: Element.t,
-      label: Element.t,
-      lowerLeftLabel: option<Element.t>,
-      upperLeftLabel: option<Element.t>,
-      upperRightLabel: option<Element.t>,
-      lowerRightLabel: option<Element.t>,
-    }
-  }
   
   module EdgeRendering = {
     type t = {
@@ -128,8 +104,8 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
         ()
       )
       
-      mainG->Element.appendChild(~child=edgePath)
-      mainG->Element.appendChild(~child=edgeSinkText)
+      svg->Element.appendChild(~child=edgePath)
+      svg->Element.appendChild(~child=edgeSinkText)
       
       edgeRenderings->Js.Dict.set(edgeID, {
         EdgeRendering.pathElem: edgePath,
@@ -152,16 +128,24 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
         id: id,
         width,
         height,
-        marginLeft: nodeMarginLeft,
-        marginRight: nodeMarginRight,
-        marginTop: nodeMarginTop,
-        marginBottom: nodeMarginBottom,
+        centerX: display.relativeCX,
+        centerY: display.relativeCY
       }: T.node)
     }),
     
     edges: graph.edges->Belt.Array.map(edge => {
-      let {edgeID, source, sink, sinkPos} = edge
+      let {edgeID, source, sink, sourceAttachment, sinkAttachment} = edge
+
+      let sinkNode = nodeMap->Dict.get(sink)->Option.getExn
+      let sourceNode = nodeMap->Dict.get(source)->Option.getUnsafe
+      let {display: {sinkAttachments, relativeCX: sinkCX, massWidth: sinkMassWidth}} = sinkNode
+      let {display: {sourceAttachments, relativeCX: sourceCX, massWidth: sourceMassWidth}} = sourceNode
+
+      let {relativeX: sinkRelativeX} = sinkAttachments->Dict.get(sinkAttachment)->Option.getExn
+      let {relativeX: sourceRelativeX} = sourceAttachments->Dict.get(sourceAttachment)->Option.getExn
       
+      let sinkPos = (sinkRelativeX -. sinkCX) /. sinkMassWidth
+
       ({
         edgeID,
         source,
@@ -175,13 +159,12 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
   let {nodeCenterXs, nodeCenterYs, edgeExtraNodes} = layout
   
   graph.nodes->Belt.Array.forEach(node => {
-    let {id } = node
+    let {id, display} = node
     
     let cx = nodeCenterXs->Js.Dict.unsafeGet(id)
     let cy = nodeCenterYs->Js.Dict.unsafeGet(id)
     
-    let nodeRendering = nodeRenderings->Js.Dict.unsafeGet(id)
-    let {nodeG, nodeRelativeCX, nodeRelativeCY} = nodeRendering
+    let {g: nodeG, relativeCX: nodeRelativeCX, relativeCY: nodeRelativeCY} = display
     
     let cxT = cx -. nodeRelativeCX
     let cyT = cy -. nodeRelativeCY
@@ -194,33 +177,29 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
   let edgePlacements = Js.Dict.empty()
   
   graph.edges->Belt.Array.forEach(edge => {
-    let {edgeID, source, sink, sinkPos, edgeMetrics} = edge
+    let {edgeID, source, sink, sourceAttachment, sinkAttachment, edgeMetrics} = edge
     let edgeRendering = edgeRenderings->Js.Dict.unsafeGet(edgeID)
     let {pathElem, sinkLabelElem} = edgeRendering
-    let sinkRendering = nodeRenderings->Js.Dict.unsafeGet(sink)
-    let sourceRendering = nodeRenderings->Js.Dict.unsafeGet(source)
     
+    let sinkNode = nodeMap->Dict.get(sink)->Option.getExn
+    let sourceNode = nodeMap->Dict.get(source)->Option.getUnsafe
+    let {display: {sinkAttachments, relativeCX: sinkRelativeCX, relativeCY: sinkRelativeCY}} = sinkNode
+    let {display: {sourceAttachments, relativeCX: sourceRelativeCX, relativeCY: sourceRelativeCY}} = sourceNode
+
+    let {relativeX: sinkRelativeX, relativeY: sinkRelativeY} = sinkAttachments->Dict.get(sinkAttachment)->Option.getExn
+    let {relativeX: sourceRelativeX, relativeY: sourceRelativeY} = sourceAttachments->Dict.get(sourceAttachment)->Option.getExn
+
     let cx1 = nodeCenterXs->Js.Dict.unsafeGet(source)
     let cy1 = nodeCenterYs->Js.Dict.unsafeGet(source)
     
     let cx2 = nodeCenterXs->Js.Dict.unsafeGet(sink)
     let cy2 = nodeCenterYs->Js.Dict.unsafeGet(sink)
     
-    let boxHeight1 = sourceRendering.NodeRendering.nodeBoxHeight
-    let boxFlatWidth2 = sinkRendering.NodeRendering.nodeFlatWidth
-    let boxHeight2 = sinkRendering.NodeRendering.nodeBoxHeight
-    
-    let xStart = cx1
-    let yStart = switch orientation {
-      | FlowingUp => cy1 -. boxHeight1/.2.0
-      | FlowingDown => cy1 +. boxHeight1/.2.0
-    }
-    
-    let xEnd = cx2 +. sinkPos*.boxFlatWidth2*.0.9/.2.0
-    let yEnd = switch orientation {
-      | FlowingUp => cy2 +. boxHeight2/.2.0 +. 10.0
-      | FlowingDown => cy2 -. boxHeight2/.2.0 -. 10.0
-    }
+    let xStart = cx1 -. sourceRelativeCX +. sourceRelativeX
+    let yStart = cy1 -. sourceRelativeCY +. sourceRelativeY
+
+    let xEnd = cx2 -. sinkRelativeCX +. sinkRelativeX
+    let yEnd = cy2 -. sinkRelativeCY +. sinkRelativeY
     
     let pointsToTravelThrough = [(xStart, yStart)]
     edgeExtraNodes->Js.Dict.get(edgeID)->Belt.Option.forEach(extraNodes => {
@@ -277,26 +256,20 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
   })
   
   let renderedNodes = Js.Dict.empty()
-  nodeRenderings->Js.Dict.entries->Js.Array2.forEach(((nodeID, rendering: NodeRendering.t)) => {
+  graph.nodes->Js.Array2.forEach(({id: nodeID, display}) => {
     let x = (layout.nodeCenterXs->Js.Dict.unsafeGet(nodeID))
     let y = (layout.nodeCenterYs->Js.Dict.unsafeGet(nodeID))
-    let gx = x -. (rendering.nodeRelativeCX)
-    let gy = y -. (rendering.nodeRelativeCY)
+    let gx = x -. (display.relativeCX)
+    let gy = y -. (display.relativeCY)
     renderedNodes->Js.Dict.set(nodeID, ({
       gx,
       gy,
-      g: rendering.nodeG,
-      border: rendering.border,
-      label: rendering.label,
-      lowerLeftLabel: rendering.lowerLeftLabel,
-      upperLeftLabel: rendering.upperLeftLabel,
-      upperRightLabel: rendering.upperRightLabel,
-      lowerRightLabel: rendering.lowerRightLabel,
+      g: display.g,
       nodeBBox: {
         minX: gx,
-        maxX: gx +. rendering.nodeWidth,
+        maxX: gx +. display.width,
         minY: gy,
-        maxY: gy +. rendering.nodeHeight,
+        maxY: gy +. display.height,
       }
     }: RenderedGraph.renderedNode))
   })

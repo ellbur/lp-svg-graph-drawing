@@ -45,7 +45,7 @@ let fts = Belt.Float.toString
 
 let todo = LPSVGGraphDrawing_Utils.todo
 
-let make = (document: Document.t, mainG: Element.t, textSizer: textSizer, options: options): display => {
+let make = (document: Document.t, svg: Element.t, textSizer: textSizer, options: options): display => {
   let {rect, text, g} = module(LPSVGGraphDrawing_SVGUtils)
 
   let {
@@ -133,7 +133,7 @@ let make = (document: Document.t, mainG: Element.t, textSizer: textSizer, option
   )
   
   let nodeG = document->g(~children=nodeChildren)
-  mainG->Element.appendChild(~child=nodeG)
+  svg->Element.appendChild(~child=nodeG)
   
   let leftAnnotationSize = [lowerLeftElem, upperLeftElem]->Belt.Array.map(el => el->Belt.Option.mapWithDefault(0.0, el => {
     let {stringWidth: width} = textElemMetrics(textSizer, el, ~fontSize=nodeSideTextFontSize, ~fontFamily=nodeSideTextFontFamily)
@@ -202,6 +202,7 @@ let make = (document: Document.t, mainG: Element.t, textSizer: textSizer, option
     g: nodeG,
     width,
     height,
+    massWidth: flatWidth,
     relativeCX,
     relativeCY,
     sourceAttachments,

@@ -8,7 +8,7 @@ type attachment = {
   dy: float
 }
 
-type attachmentMap = Js.Dict.t<attachment>
+type attachmentMap = Dict.t<attachment>
 
 type t = {
   g: Element.t,
@@ -16,6 +16,7 @@ type t = {
   height: float,
   relativeCX: float,
   relativeCY: float,
+  massWidth: float,
   sourceAttachments: attachmentMap,
   sinkAttachments: attachmentMap
 }
