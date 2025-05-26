@@ -199,7 +199,11 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
     let yStart = cy1 -. sourceRelativeCY +. sourceRelativeY
 
     let xEnd = cx2 -. sinkRelativeCX +. sinkRelativeX
-    let yEnd = cy2 -. sinkRelativeCY +. sinkRelativeY -. 10.0
+    let markerOffset = switch orientation {
+      | FlowingUp => 10.0
+      | FlowingDown => -10.0
+    }
+    let yEnd = cy2 -. sinkRelativeCY +. sinkRelativeY +. markerOffset
     
     let pointsToTravelThrough = [(xStart, yStart)]
     edgeExtraNodes->Js.Dict.get(edgeID)->Belt.Option.forEach(extraNodes => {
