@@ -178,7 +178,10 @@ let make = (document: Document.t, svg: Element.t, textSizer: textSizer, options:
   let sourceAttachments: NodeDisplay.attachmentMap = sourceAttachments->Dict.mapValues(({relativeHorizontalFraction}): NodeDisplay.attachment =>
     {
       relativeX: leftAnnotationSize +. nodeRoundingX +. relativeHorizontalFraction *. flatWidth,
-      relativeY: 0.0,
+      relativeY: switch orientation {
+        | FlowingUp => 0.0
+        | FlowingDown => height
+      },
       dx: 0.0,
       dy: switch orientation {
         | FlowingUp => -1.0
@@ -189,7 +192,10 @@ let make = (document: Document.t, svg: Element.t, textSizer: textSizer, options:
   let sinkAttachments: NodeDisplay.attachmentMap = sinkAttachments->Dict.mapValues(({relativeHorizontalFraction}): NodeDisplay.attachment =>
     {
       relativeX: leftAnnotationSize +. nodeRoundingX +. relativeHorizontalFraction *. flatWidth,
-      relativeY: height,
+      relativeY: switch orientation {
+        | FlowingUp => height
+        | FlowingDown => 0.0
+      },
       dx: 0.0,
       dy: switch orientation {
         | FlowingUp => 1.0

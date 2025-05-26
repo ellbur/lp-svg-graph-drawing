@@ -21,15 +21,15 @@ let edgeMetrics: Graph.edgeMetrics = {
   edgeSinkLabelFontSize: "14",
   edgeSinkLabelFontFamily: "monospace",
   edgeSinkLabelXOffset: 8.0,
-  edgeSinkLabelYOffset: -5.0,
-  edgeRectangularness: 1.0,
+  edgeSinkLabelYOffset: 8.0,
+  edgeRectangularness: 0.75,
 }
 
 let orientation = LPLayout.FlowingDown
 
 let graphMetrics: Graph.graphMetrics = {
   xSpacing: 40.0,
-  ySpacing: 60.0,
+  ySpacing: 100.0,
   orientation
 }
 
@@ -65,7 +65,7 @@ let graph: Graph.graph = {
     },
     { id: "b",
       display: TextNode.make(document, svg, StringMetrics.NativeBBox, {
-        text: "Alice",
+        text: "Bob",
         sourceAttachments: Dict.fromArray([
           ("0", { TextNode.relativeHorizontalFraction: 0.5 })
         ]),
@@ -82,7 +82,7 @@ let graph: Graph.graph = {
     },
     { id: "c",
       display: TextNode.make(document, svg, StringMetrics.NativeBBox, {
-        text: "Alice",
+        text: "Carol",
         sourceAttachments: Dict.fromArray([
           ("0", { TextNode.relativeHorizontalFraction: 0.5 })
         ]),
@@ -100,7 +100,7 @@ let graph: Graph.graph = {
   ],
   edges: [
     { edgeID: "ba", source: "b", sink: "a", sourceAttachment: "0", sinkAttachment: "0", sinkLabel: "ba", edgeMetrics },
-    { edgeID: "ca", source: "c", sink: "a", sourceAttachment: "0", sinkAttachment: "0", sinkLabel: "ca", edgeMetrics },
+    { edgeID: "ca", source: "c", sink: "a", sourceAttachment: "0", sinkAttachment: "1", sinkLabel: "ca", edgeMetrics },
   ],
   graphMetrics
 }

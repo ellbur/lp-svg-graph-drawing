@@ -199,7 +199,7 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
     let yStart = cy1 -. sourceRelativeCY +. sourceRelativeY
 
     let xEnd = cx2 -. sinkRelativeCX +. sinkRelativeX
-    let yEnd = cy2 -. sinkRelativeCY +. sinkRelativeY
+    let yEnd = cy2 -. sinkRelativeCY +. sinkRelativeY -. 10.0
     
     let pointsToTravelThrough = [(xStart, yStart)]
     edgeExtraNodes->Js.Dict.get(edgeID)->Belt.Option.forEach(extraNodes => {
