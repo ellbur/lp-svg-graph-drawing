@@ -100,135 +100,8 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
     }
   }
   
-  let nodeRenderings = Js.Dict.empty()
   let edgeRenderings = Js.Dict.empty()
   
-  {
-    let {Graph.nodes: nodes} = graph
-    nodes->Belt.Array.forEach(({id, text: label, nodeAnnotations, nodeMetrics}) => {
-      let rectElem = document->rect(
-        ~rx=nodeMetrics.nodeRoundingX->Belt.Float.toString,
-        ~ry=nodeMetrics.nodeRoundingY->Belt.Float.toString,
-        ~fill="none",
-        ~strokeWidth=nodeMetrics.nodeBorderStrokeWidth,
-        ~class="node-border",
-        ~stroke="#999",
-        ()
-      )
-      
-      let textElem = document->text(
-        ~textAnchor="middle",
-        ~dominantBaseline="middle",
-        ~fontSize=nodeMetrics.nodeFontSize,
-        ~fontFamily=nodeMetrics.nodeFontFamily,
-        ~class="node-text",
-        ~textContent=label,
-        ()
-      )
-      
-      let lowerLeftElem: option<Element.t> = nodeAnnotations.lowerLeft->Belt.Option.map(textContent => document->text(
-        ~textAnchor="end",
-        ~dominantBaseline="auto",
-        ~fontSize=nodeMetrics.nodeSideTextFontSize,
-        ~fontFamily=nodeMetrics.nodeSideTextFontFamily,
-        ~class="node-annotation node-annotation-lower-left",
-        ~textContent,
-        ()
-      ))
-      let upperLeftElem: option<Element.t> = nodeAnnotations.upperLeft->Belt.Option.map(textContent => document->text(
-        ~textAnchor="end",
-        ~dominantBaseline="hanging",
-        ~fontSize=nodeMetrics.nodeSideTextFontSize,
-        ~fontFamily=nodeMetrics.nodeSideTextFontFamily,
-        ~class="node-annotation node-annotation-upper-left",
-        ~textContent,
-        ()
-      ))
-      let lowerRightElem: option<Element.t> = nodeAnnotations.lowerRight->Belt.Option.map(textContent => document->text(
-        ~textAnchor="start",
-        ~dominantBaseline="auto",
-        ~fontSize=nodeMetrics.nodeSideTextFontSize,
-        ~fontFamily=nodeMetrics.nodeSideTextFontFamily,
-        ~class="node-annotation node-annotation-lower-right",
-        ~textContent,
-        ()
-      ))
-      let upperRightElem: option<Element.t> = nodeAnnotations.upperRight->Belt.Option.map(textContent => document->text(
-        ~textAnchor="start",
-        ~dominantBaseline="hanging",
-        ~fontSize=nodeMetrics.nodeSideTextFontSize,
-        ~fontFamily=nodeMetrics.nodeSideTextFontFamily,
-        ~class="node-annotation node-annotation-upper-right",
-        ~textContent,
-        ()
-      ))
-      
-      let nodeChildren = [Some(rectElem), Some(textElem), lowerLeftElem, upperLeftElem, lowerRightElem, upperRightElem]->Belt.Array.flatMap(el =>
-        el->Belt.Option.mapWithDefault([], x => [x])
-      )
-      
-      let nodeG = document->g(~children=nodeChildren)
-      mainG->Element.appendChild(~child=nodeG)
-      
-      let leftAnnotationSize = [lowerLeftElem, upperLeftElem]->Belt.Array.map(el => el->Belt.Option.mapWithDefault(0.0, el => {
-        let {stringWidth: width} = textElemMetrics(textSizer, el, ~fontSize=nodeMetrics.nodeSideTextFontSize, ~fontFamily=nodeMetrics.nodeSideTextFontFamily)
-        width +. nodeMetrics.nodeSideTextXOffset
-      }))->Belt.Array.reduce(0.0, Js.Math.max_float)
-      
-      let rightAnnotationSize = [lowerRightElem, upperRightElem]->Belt.Array.map(el => el->Belt.Option.mapWithDefault(0.0, el => {
-        let {stringWidth: width} = textElemMetrics(textSizer, el, ~fontSize=nodeMetrics.nodeSideTextFontSize, ~fontFamily=nodeMetrics.nodeSideTextFontFamily)
-        width +. nodeMetrics.nodeSideTextXOffset
-      }))->Belt.Array.reduce(0.0, Js.Math.max_float)
-      
-      let {stringWidth: textWidth, stringHeight: textHeight} = textElemMetrics(textSizer, textElem, ~fontSize=nodeMetrics.nodeFontSize, ~fontFamily=nodeMetrics.nodeFontFamily)
-      let rectWidth = textWidth +. 2.0*.nodeMetrics.nodeHorizontalPadding
-      let rectHeight = textHeight +. 2.0*.nodeMetrics.nodeVerticalPadding
-      
-      rectElem->Element.setAttribute("x", fts(leftAnnotationSize))
-      rectElem->Element.setAttribute("y", "0")
-      rectElem->Element.setAttribute("width", fts(rectWidth))
-      rectElem->Element.setAttribute("height", fts(rectHeight))
-      
-      textElem->Element.setAttribute("x", fts(leftAnnotationSize +. rectWidth/.2.0))
-      textElem->Element.setAttribute("y", fts(rectHeight/.2.0))
-      
-      lowerLeftElem->Belt.Option.forEach(el => el->Element.setAttribute("x", fts(leftAnnotationSize-.nodeMetrics.nodeSideTextXOffset)))
-      lowerLeftElem->Belt.Option.forEach(el => el->Element.setAttribute("y", fts(rectHeight -. 0.5*.nodeMetrics.nodeRoundingY)))
-      
-      upperLeftElem->Belt.Option.forEach(el => el->Element.setAttribute("x", fts(leftAnnotationSize-.nodeMetrics.nodeSideTextXOffset)))
-      upperLeftElem->Belt.Option.forEach(el => el->Element.setAttribute("y", "0.0"))
-      
-      lowerRightElem->Belt.Option.forEach(el => el->Element.setAttribute("x", fts(leftAnnotationSize+.rectWidth+.nodeMetrics.nodeSideTextXOffset)))
-      lowerRightElem->Belt.Option.forEach(el => el->Element.setAttribute("y", fts(rectHeight -. 0.5*.nodeMetrics.nodeRoundingY)))
-      
-      upperRightElem->Belt.Option.forEach(el => el->Element.setAttribute("x", fts(leftAnnotationSize+.rectWidth+.nodeMetrics.nodeSideTextXOffset)))
-      upperRightElem->Belt.Option.forEach(el => el->Element.setAttribute("y", "0.0"))
-      
-      let nodeRendering: NodeRendering.t = {
-        nodeG,
-        nodeRelativeCX: leftAnnotationSize +. rectWidth/.2.0,
-        nodeRelativeCY: rectHeight/.2.0,
-        nodeBoxWidth: rectWidth,
-        nodeBoxHeight: rectHeight,
-        nodeMarginLeft: leftAnnotationSize,
-        nodeMarginRight: rightAnnotationSize,
-        nodeWidth: leftAnnotationSize +. rectWidth +. rightAnnotationSize,
-        nodeHeight: rectHeight,
-        nodeMarginTop: 0.0,
-        nodeMarginBottom: 0.0,
-        nodeFlatWidth: rectWidth -. 2.0*.nodeMetrics.nodeRoundingX,
-        border: rectElem,
-        label: textElem,
-        lowerLeftLabel: lowerLeftElem,
-        upperLeftLabel: upperLeftElem,
-        upperRightLabel: upperRightElem,
-        lowerRightLabel: lowerRightElem,
-      }
-      
-      nodeRenderings->Js.Dict.set(id, nodeRendering)
-    })
-  }
-
   {
     let {edges} = graph
     edges->Belt.Array.forEach(({edgeID, sinkLabel, edgeMetrics}) => {
@@ -271,15 +144,14 @@ let renderGraph = (~document: Document.t, ~svg: Element.t, ~graph: Graph.graph, 
   
   let lpGraph: T.graph = {
     nodes: graph.nodes->Belt.Array.map(node => {
-      let {id} = node
+      let {id, display} = node
       
-      let nodeRendering = nodeRenderings->Js.Dict.unsafeGet(id)
-      let {nodeBoxWidth, nodeBoxHeight, nodeMarginLeft, nodeMarginRight, nodeMarginTop, nodeMarginBottom} = nodeRendering
+      let {width, height} = display
       
       ({
         id: id,
-        width: nodeBoxWidth,
-        height: nodeBoxHeight,
+        width,
+        height,
         marginLeft: nodeMarginLeft,
         marginRight: nodeMarginRight,
         marginTop: nodeMarginTop,

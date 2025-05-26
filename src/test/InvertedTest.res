@@ -1,4 +1,5 @@
 
+/*
 module Graph = LPSVGGraphDrawing.Graph
 type orientation = Graph.orientation
 
@@ -72,4 +73,5 @@ container->Element.appendChild(~child=svg2)
 let renderedGraph1 = LPSVGGraphDrawing.renderGraph(~document, ~svg=svg1, ~graph = graph(FlowingUp))
 
 let renderedGraph2 = LPSVGGraphDrawing.renderGraph(~document, ~svg=svg2, ~graph = graph(FlowingDown))
+*/
 

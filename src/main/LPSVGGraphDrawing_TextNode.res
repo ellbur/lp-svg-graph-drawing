@@ -10,12 +10,7 @@ type attachment = {
   relativeHorizontalFraction: float
 }
 
-type options = {
-  text: string,
-  sourceAttachments: Js.Dict.t<attachment>,
-  sinkAttachments: Js.Dict.t<attachment>,
-  annotations: annotations,
-  orientation: LPLayout.orientation,
+type style = {
   nodeBorderStrokeWidth: string,
   nodeHorizontalPadding: float,
   nodeVerticalPadding: float,
@@ -28,8 +23,17 @@ type options = {
   nodeRoundingY: float,
 }
 
-module ConstructedNode = LPSVGGraphDrawing_ConstructedNode
-type constructedNode = ConstructedNode.t
+type options = {
+  text: string,
+  sourceAttachments: Js.Dict.t<attachment>,
+  sinkAttachments: Js.Dict.t<attachment>,
+  annotations: annotations,
+  orientation: LPLayout.orientation,
+  style: style
+}
+
+module NodeDisplay = LPSVGGraphDrawing_NodeDisplay
+type display = NodeDisplay.t
 
 module Document = Webapi.Dom.Document
 module Element = Webapi.Dom.Element
@@ -41,7 +45,7 @@ let fts = Belt.Float.toString
 
 let todo = LPSVGGraphDrawing_Utils.todo
 
-let construct = (document: Document.t, mainG: Element.t, textSizer: textSizer, options: options): constructedNode => {
+let make = (document: Document.t, mainG: Element.t, textSizer: textSizer, options: options): display => {
   let {rect, text, g} = module(LPSVGGraphDrawing_SVGUtils)
 
   let {
@@ -50,16 +54,18 @@ let construct = (document: Document.t, mainG: Element.t, textSizer: textSizer, o
     sinkAttachments,
     annotations,
     orientation,
-    nodeBorderStrokeWidth,
-    nodeHorizontalPadding,
-    nodeVerticalPadding,
-    nodeFontSize,
-    nodeFontFamily,
-    nodeSideTextFontSize,
-    nodeSideTextFontFamily,
-    nodeSideTextXOffset,
-    nodeRoundingX,
-    nodeRoundingY,
+    style: {
+      nodeBorderStrokeWidth,
+      nodeHorizontalPadding,
+      nodeVerticalPadding,
+      nodeFontSize,
+      nodeFontFamily,
+      nodeSideTextFontSize,
+      nodeSideTextFontFamily,
+      nodeSideTextXOffset,
+      nodeRoundingX,
+      nodeRoundingY,
+    }
   } = options
 
   let rectElem = document->rect(
@@ -169,7 +175,7 @@ let construct = (document: Document.t, mainG: Element.t, textSizer: textSizer, o
   let height = rectHeight
   let relativeCX = leftAnnotationSize +. rectWidth/.2.0
   let relativeCY = rectHeight/.2.0
-  let sourceAttachments: ConstructedNode.attachmentMap = sourceAttachments->Dict.mapValues(({relativeHorizontalFraction}): ConstructedNode.attachment =>
+  let sourceAttachments: NodeDisplay.attachmentMap = sourceAttachments->Dict.mapValues(({relativeHorizontalFraction}): NodeDisplay.attachment =>
     {
       relativeX: leftAnnotationSize +. nodeRoundingX +. relativeHorizontalFraction *. flatWidth,
       relativeY: 0.0,
@@ -180,7 +186,7 @@ let construct = (document: Document.t, mainG: Element.t, textSizer: textSizer, o
       }
     }
   )
-  let sinkAttachments: ConstructedNode.attachmentMap = sinkAttachments->Dict.mapValues(({relativeHorizontalFraction}): ConstructedNode.attachment =>
+  let sinkAttachments: NodeDisplay.attachmentMap = sinkAttachments->Dict.mapValues(({relativeHorizontalFraction}): NodeDisplay.attachment =>
     {
       relativeX: leftAnnotationSize +. nodeRoundingX +. relativeHorizontalFraction *. flatWidth,
       relativeY: height,
@@ -201,9 +207,5 @@ let construct = (document: Document.t, mainG: Element.t, textSizer: textSizer, o
     sourceAttachments,
     sinkAttachments
   }
-}
-
-let place = () => {
-  ()
 }
 

@@ -1,4 +1,5 @@
 
+/*
 module Graph = LPSVGGraphDrawing.Graph
 
 let nodeMetrics: Graph.nodeMetrics = {
@@ -65,4 +66,5 @@ let svg = document->Document.createElementNS(svgNS, "svg")
 container->Element.appendChild(~child=svg)
 
 LPSVGGraphDrawing.renderGraph(~document, ~svg, ~graph)->ignore
+*/
 
